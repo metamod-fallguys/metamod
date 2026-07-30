@@ -1055,9 +1055,14 @@ mBOOL DLLINTERNAL MPlugin::unload(PLUG_LOADTIME now, PL_UNLOAD_REASON reason, PL
 		META_WARNING("dll: Not unloading plugin '%s'; not marked for unload (action=%s)", desc, str_action());
 		RETURN_ERRNO(mFALSE, ME_BADREQ);
 	}
+	if(info && info->unloadable == PT_NEVER) {
+		META_DEBUG(2, ("dll: Failed unload plugin '%s'; plugin is marked as never unloadable", desc));
+		action=PA_NONE;
+		RETURN_ERRNO(mFALSE, ME_NOTALLOWED);
+	}
 
 	// Are we allowed to detach this plugin at this time?
-	// If forcing unload, we disregard when plugin wants to be unloaded.
+	// Forced unload can disregard timing restrictions, but not PT_NEVER.
 	if(info && info->unloadable < now) {
 		if(reason == PNL_CMD_FORCED) {
 			META_DEBUG(2, ("dll: Forced unload plugin '%s' overriding allowed times: allowed=%s; now=%s", desc, str_unloadable(), str_loadtime(now, SL_SIMPLE)));
