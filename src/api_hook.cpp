@@ -79,7 +79,6 @@ inline const api_info_t* DLLINTERNAL get_api_info(enum_api_t api, unsigned int a
 void DLLINTERNAL main_hook_function_void(unsigned int api_info_offset, enum_api_t api, unsigned int func_offset, const void* packed_args)
 {
     const api_info_t* api_info;
-    int               i;
     META_RES          mres, status, prev_mres;
     MPlugin*          iplug;
     void*             pfn_routine;
@@ -106,19 +105,10 @@ void DLLINTERNAL main_hook_function_void(unsigned int api_info_offset, enum_api_
 
     //Pre plugin functions
     prev_mres = MRES_UNSET;
-    for (i = 0; likely(i < Plugins->endlist); i++)
+    MPluginList::HookIterator pre_hooks(*Plugins, api, false);
+    while ((iplug = pre_hooks.next()) != NULL)
     {
-        iplug = &Plugins->plist[i];
-
-        if (unlikely(iplug->status != PL_RUNNING))
-            continue;
-
         api_table = iplug->get_api_table(api);
-        if (likely(!api_table))
-        {
-            //plugin doesn't provide this api table
-            continue;
-        }
 
         pfn_routine = get_api_function(api_table, func_offset);
         if (likely(!pfn_routine))
@@ -189,19 +179,10 @@ void DLLINTERNAL main_hook_function_void(unsigned int api_info_offset, enum_api_
 
     //Post plugin functions
     prev_mres = MRES_UNSET;
-    for (i = 0; likely(i < Plugins->endlist); i++)
+    MPluginList::HookIterator post_hooks(*Plugins, api, true);
+    while ((iplug = post_hooks.next()) != NULL)
     {
-        iplug = &Plugins->plist[i];
-
-        if (unlikely(iplug->status != PL_RUNNING))
-            continue;
-
         api_table = iplug->get_api_post_table(api);
-        if (likely(!api_table))
-        {
-            //plugin doesn't provide this api table
-            continue;
-        }
 
         pfn_routine = get_api_function(api_table, func_offset);
         if (likely(!pfn_routine))
@@ -245,7 +226,6 @@ void DLLINTERNAL main_hook_function_void(unsigned int api_info_offset, enum_api_
 void* DLLINTERNAL main_hook_function(const class_ret_t ret_init, unsigned int api_info_offset, enum_api_t api, unsigned int func_offset, const void* packed_args)
 {
     const api_info_t* api_info;
-    int               i;
     META_RES          mres, status, prev_mres;
     MPlugin*          iplug;
     void*             pfn_routine;
@@ -279,19 +259,10 @@ void* DLLINTERNAL main_hook_function(const class_ret_t ret_init, unsigned int ap
 
     //Pre plugin functions
     prev_mres = MRES_UNSET;
-    for (i = 0; likely(i < Plugins->endlist); i++)
+    MPluginList::HookIterator pre_hooks(*Plugins, api, false);
+    while ((iplug = pre_hooks.next()) != NULL)
     {
-        iplug = &Plugins->plist[i];
-
-        if (unlikely(iplug->status != PL_RUNNING))
-            continue;
-
         api_table = iplug->get_api_table(api);
-        if (likely(!api_table))
-        {
-            //plugin doesn't provide this api table
-            continue;
-        }
 
         pfn_routine = get_api_function(api_table, func_offset);
         if (likely(!pfn_routine))
@@ -382,19 +353,10 @@ void* DLLINTERNAL main_hook_function(const class_ret_t ret_init, unsigned int ap
 
     //Post plugin functions
     prev_mres = MRES_UNSET;
-    for (i = 0; likely(i < Plugins->endlist); i++)
+    MPluginList::HookIterator post_hooks(*Plugins, api, true);
+    while ((iplug = post_hooks.next()) != NULL)
     {
-        iplug = &Plugins->plist[i];
-
-        if (unlikely(iplug->status != PL_RUNNING))
-            continue;
-
         api_table = iplug->get_api_post_table(api);
-        if (likely(!api_table))
-        {
-            //plugin doesn't provide this api table
-            continue;
-        }
 
         pfn_routine = get_api_function(api_table, func_offset);
         if (likely(!pfn_routine))
