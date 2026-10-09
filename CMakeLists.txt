@@ -59,6 +59,9 @@ if(WIN32)
     target_compile_definitions(metamod PRIVATE __INTERNALS_USE_REGPARAMS__)
 else()
     target_sources(metamod PRIVATE src/osdep_detect_gamedll_linux.cpp src/osdep_linkent_linux.cpp)
+    # Legacy engine/plugin callers may provide only 4-byte stack alignment.
+    # Keep the default 16-byte preferred alignment for SSE and outgoing calls.
+    target_compile_options(metamod PRIVATE -mincoming-stack-boundary=2)
     target_compile_definitions(metamod PRIVATE $<$<NOT:$<CONFIG:Debug>>:__INTERNALS_USE_REGPARAMS__>)
     mmfg_procmap_library()
     target_link_libraries(metamod PRIVATE procmap)
