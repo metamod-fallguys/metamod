@@ -1,5 +1,26 @@
 include_guard(GLOBAL)
 
+function(mmfg_configure_install_layout)
+    if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+        return()
+    endif()
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        if(NOT CMAKE_CONFIGURATION_TYPES AND CMAKE_BUILD_TYPE)
+            set(config "${CMAKE_BUILD_TYPE}")
+        else()
+            # Multi-config install prefixes cannot expand $<CONFIG>. Use one
+            # build/x86/<Config> tree per configuration instead.
+            get_filename_component(config "${CMAKE_BINARY_DIR}" NAME)
+            if(NOT config MATCHES "^(Debug|Release)$")
+                set(config Release)
+            endif()
+        endif()
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install/x86/${config}"
+            CACHE PATH "Install prefix for the selected x86 configuration" FORCE)
+    endif()
+    message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
+endfunction()
+
 function(mmfg_configure_target target)
     if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
         message(FATAL_ERROR "${target} requires 32-bit compilation; use -A Win32 on Windows.")

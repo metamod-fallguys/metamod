@@ -12,6 +12,7 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build configuration" FORCE)
 endif()
 include(cmake/SDK.cmake)
+mmfg_configure_install_layout()
 
 add_library(metamod SHARED
     src/api_hook.cpp
