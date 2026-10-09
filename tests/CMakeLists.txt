@@ -25,6 +25,7 @@ set(MMFG_TEST_PLUGIN_SOURCES
     "${MMFG_TEST_COMPONENT_ROOT}/src/support_meta.cpp"
     "${MMFG_TEST_COMPONENT_ROOT}/src/log_meta.cpp"
     "${MMFG_TEST_COMPONENT_ROOT}/src/osdep.cpp"
+    "${MMFG_TEST_COMPONENT_ROOT}/src/osdep_p.cpp"
     "${MMFG_TEST_COMPONENT_ROOT}/src/mplayer.cpp"
     "${MMFG_TEST_COMPONENT_ROOT}/src/conf_meta.cpp"
     "${MMFG_TEST_COMPONENT_ROOT}/src/meta_eiface.cpp"
