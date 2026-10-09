@@ -106,6 +106,14 @@ mmetest_add(mmfg_test_mlist_add
         "${CMAKE_CURRENT_LIST_DIR}/test_mlist_add.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
 
+mmetest_add(mmfg_test_usermsg
+    SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_usermsg.cpp"
+        ${MMFG_TEST_PLUGIN_SOURCES})
+if(UNIX)
+    target_compile_definitions(mmfg_test_usermsg PRIVATE MMFG_TEST_WRAP_STRDUP)
+    target_link_options(mmfg_test_usermsg PRIVATE -Wl,--wrap=strdup)
+endif()
+
 mmetest_add(mmfg_test_client_cvar
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_client_cvar.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})

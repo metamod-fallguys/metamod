@@ -537,27 +537,15 @@ static void* mm_GetModelPtr(edict_t* pEdict)
 
 static int mm_RegUserMsg(const char* pszName, int iSize)
 {
-    int      imsgid;
-    MRegMsg* nmsg = NULL;
+    int imsgid;
     META_ENGINE_HANDLE(int, 0, FN_REGUSERMSG, pfnRegUserMsg, pi, (pszName, iSize));
     // Expand the macro, since we need to do extra work.
     /// RETURN_API(int)
     imsgid = GET_RET_CLASS(ret_val, int);
 
-    // Add the msgid, name, and size to our saved list, if we haven't
-    // already.
-    nmsg = RegMsgs->find(imsgid);
-    if (nmsg)
-    {
-        if (FStrEq(pszName, nmsg->name))
-            // This name/msgid pair was already registered.
-            META_DEBUG(3, ("user message registered again: name=%s, msgid=%d", pszName, imsgid));
-        else
-            // This msgid was previously used by a different message name.
-            META_WARNING("user message id reused: msgid=%d, oldname=%s, newname=%s", imsgid, nmsg->name, pszName);
-    }
-    else
-        RegMsgs->add(pszName, imsgid, iSize);
+    // Record the name, including completion of a previously unnamed message.
+    if (!RegMsgs->add(pszName, imsgid, iSize) && meta_errno == ME_NOMEM)
+        META_WARNING("Couldn't copy user message name: msgid=%d", imsgid);
     return (imsgid);
 }
 

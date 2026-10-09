@@ -174,7 +174,7 @@ private:
     // data:
     int index; // 1-based
 public:
-    const char* name;  // name, assumed constant string in gamedll
+    const char* name;  // list-owned nonempty name, or a static empty string
     int         msgid; // msgid, assigned by engine
     int         size;  // size, if given by gamedll
 };
@@ -189,9 +189,13 @@ private:
     int     size;                // size of list, ie MAX_REG_MSGS
     int     endlist;             // index of last used entry
 
+    MRegMsgList(const MRegMsgList&)            = delete;
+    MRegMsgList& operator=(const MRegMsgList&) = delete;
+
 public:
     // constructor:
     MRegMsgList(void) DLLINTERNAL;
+    ~MRegMsgList();
 
     // functions:
     MRegMsg* DLLINTERNAL add(const char* addname, int addmsgid, int addsize);
