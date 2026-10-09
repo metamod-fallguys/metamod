@@ -105,6 +105,10 @@ mmetest_add(mmfg_test_mlist_add
         "${CMAKE_CURRENT_LIST_DIR}/test_mlist_add.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
 
+mmetest_add(mmfg_test_client_cvar
+    SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_client_cvar.cpp"
+        ${MMFG_TEST_PLUGIN_SOURCES})
+
 if(UNIX)
     # Fixture for the gamedll tests: a shared object that satisfies the ELF
     # symbol check in osdep_detect_gamedll_linux.cpp.
