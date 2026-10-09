@@ -106,6 +106,16 @@ mmetest_add(mmfg_test_mlist_add
         "${CMAKE_CURRENT_LIST_DIR}/test_mlist_add.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
 
+# CDetour uses intentional unaligned instruction operands and the existing
+# decoder retains Capstone handles. Keep this executable a native code probe.
+add_executable(mmfg_test_detour_ibt test_detour_ibt.cpp
+    "${MMFG_TEST_COMPONENT_ROOT}/src/CDetour/detours.cpp"
+    "${MMFG_TEST_COMPONENT_ROOT}/src/CDetour/asm/asm.cpp")
+target_include_directories(mmfg_test_detour_ibt PRIVATE ${MMFG_TEST_INCLUDE_DIRS})
+target_link_libraries(mmfg_test_detour_ibt PRIVATE capstone-static Capstone::Headers)
+set_target_properties(mmfg_test_detour_ibt PROPERTIES CXX_STANDARD 17)
+add_test(NAME mmfg_test_detour_ibt COMMAND mmfg_test_detour_ibt)
+
 mmetest_add(mmfg_test_usermsg
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_usermsg.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})

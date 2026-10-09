@@ -234,6 +234,8 @@ private:
 	patch_t detour_restore;
 	/* Address of the detoured function */
 	void *detour_address;
+	/* Patch site, past an existing i686 ENDBR32 landing pad. */
+	void *detour_patch_address;
 	/* Address of the allocated trampoline function */
 	void *detour_trampoline;
 	/* Address of the callback handler */
