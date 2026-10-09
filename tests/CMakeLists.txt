@@ -110,6 +110,12 @@ mmetest_add(mmfg_test_client_cvar
         ${MMFG_TEST_PLUGIN_SOURCES})
 
 if(UNIX)
+    mmetest_add(mmfg_test_config_reload
+        LINUX_ONLY
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_config_reload.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/conf_meta.cpp"
+            ${MMFG_TEST_CORE_SOURCES})
+
     mmetest_add(mmfg_test_cvar_allocation
         LINUX_ONLY
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_cvar_allocation.cpp"
