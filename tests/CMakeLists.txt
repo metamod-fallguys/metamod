@@ -110,6 +110,13 @@ mmetest_add(mmfg_test_client_cvar
         ${MMFG_TEST_PLUGIN_SOURCES})
 
 if(UNIX)
+    mmetest_add(mmfg_test_cvar_allocation
+        LINUX_ONLY
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_cvar_allocation.cpp"
+            ${MMFG_TEST_PLUGIN_SOURCES})
+    target_link_options(mmfg_test_cvar_allocation PRIVATE
+        -Wl,--wrap=calloc -Wl,--wrap=strdup -Wl,--wrap=free)
+
     # Fixture for the gamedll tests: a shared object that satisfies the ELF
     # symbol check in osdep_detect_gamedll_linux.cpp.
     add_library(mmfg_test_fake_gamedll SHARED "${CMAKE_CURRENT_LIST_DIR}/fake_gamedll.c")

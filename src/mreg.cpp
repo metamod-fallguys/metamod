@@ -379,6 +379,8 @@ MRegCvar* DLLINTERNAL MRegCvarList::add(const char* addname)
     {
         META_WARNING("Couldn't strdup for adding reg cvar name '%s': %s",
                      addname, strerror(errno));
+        free(icvar->data);
+        icvar->data = NULL;
         RETURN_ERRNO(NULL, ME_NOMEM);
     }
     endlist++;
