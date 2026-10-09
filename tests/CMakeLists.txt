@@ -77,3 +77,8 @@ mmetest_add(mmfg_test_mplugin_ini
     SOURCES
         "${CMAKE_CURRENT_LIST_DIR}/test_mplugin_ini.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
+
+mmetest_add(mmfg_test_mlist_add
+    SOURCES
+        "${CMAKE_CURRENT_LIST_DIR}/test_mlist_add.cpp"
+        ${MMFG_TEST_PLUGIN_SOURCES})
