@@ -43,6 +43,19 @@ static int check_failure(const char* library, META_ERRNO expected)
 int main()
 {
     mm_test_reset();
+    TEST("clear - releases Studio tables and can be repeated");
+    Plugins                                = new MPluginList("plugins.ini");
+    MPlugin& cleared                       = Plugins->plist[0];
+    cleared.status                         = PL_FAILED;
+    cleared.tables.studio_blend_api        = (sv_blending_interface_t*)calloc(1, sizeof(sv_blending_interface_t));
+    cleared.post_tables.studio_blend_api   = (sv_blending_interface_t*)calloc(1, sizeof(sv_blending_interface_t));
+    cleared.gamedll_funcs.studio_blend_api = (sv_blending_interface_t*)calloc(1, sizeof(sv_blending_interface_t));
+    ASSERT_TRUE(cleared.clear());
+    ASSERT_PTR_NULL(cleared.gamedll_funcs.studio_blend_api);
+    ASSERT_TRUE(cleared.clear());
+    delete Plugins;
+    Plugins = NULL;
+    PASS();
     TEST("attach - missing symbol releases all three tables");
     if (check_failure(MMFG_TEST_FAKE_GAMEDLL, ME_DLMISSING)) return 1;
     ASSERT_INT(attach_calls, 0);
