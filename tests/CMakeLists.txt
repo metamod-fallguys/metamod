@@ -32,6 +32,15 @@ set(MMFG_TEST_PLUGIN_SOURCES
     "${MMFG_TEST_COMPONENT_ROOT}/src/reg_support.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/mm_test_stubs.cpp")
 
+# Everything the plugin code needs, minus the plugin classes themselves. Used by
+# the tests that only exercise game directory and gamedll handling.
+set(MMFG_TEST_CORE_SOURCES
+    "${MMFG_TEST_COMPONENT_ROOT}/src/support_meta.cpp"
+    "${MMFG_TEST_COMPONENT_ROOT}/src/log_meta.cpp"
+    "${MMFG_TEST_COMPONENT_ROOT}/src/osdep.cpp"
+    "${MMFG_TEST_COMPONENT_ROOT}/src/mplayer.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/mm_test_stubs.cpp")
+
 option(MMFG_METAMOD_TESTS_SANITIZE
     "Build the component tests with Address and UndefinedBehaviour sanitizers (GCC/Clang only)" ON)
 if(MSVC)
@@ -82,3 +91,23 @@ mmetest_add(mmfg_test_mlist_add
     SOURCES
         "${CMAKE_CURRENT_LIST_DIR}/test_mlist_add.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
+
+if(UNIX)
+    # Fixture for the gamedll tests: a shared object that satisfies the ELF
+    # symbol check in osdep_detect_gamedll_linux.cpp.
+    add_library(mmfg_test_fake_gamedll SHARED "${CMAKE_CURRENT_LIST_DIR}/fake_gamedll.c")
+    set_target_properties(mmfg_test_fake_gamedll PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "mmfg_fake_gamedll")
+
+    mmetest_add(mmfg_test_game_autodetect
+        LINUX_ONLY
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test_game_autodetect.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/game_autodetect.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/osdep_detect_gamedll_linux.cpp"
+            ${MMFG_TEST_CORE_SOURCES})
+    add_dependencies(mmfg_test_game_autodetect mmfg_test_fake_gamedll)
+    target_compile_definitions(mmfg_test_game_autodetect PRIVATE
+        "MMFG_TEST_FAKE_GAMEDLL=\"$<TARGET_FILE:mmfg_test_fake_gamedll>\"")
+endif()
