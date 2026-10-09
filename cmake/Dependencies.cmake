@@ -46,7 +46,11 @@ function(mmfg_capstone_library)
     mmfg_capstone_headers()
     if(NOT TARGET capstone-static)
         get_target_property(source mmfg_capstone_headers MMFG_SOURCE)
+        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
         set(CAPSTONE_ARCHITECTURE_DEFAULT OFF)
+        foreach(architecture ARM ARM64 M68K MIPS PPC SPARC SYSZ XCORE TMS320C64X M680X EVM)
+            set(CAPSTONE_${architecture}_SUPPORT OFF)
+        endforeach()
         set(CAPSTONE_X86_SUPPORT ON)
         set(CAPSTONE_BUILD_STATIC ON)
         set(CAPSTONE_BUILD_STATIC_RUNTIME ON)
@@ -73,6 +77,7 @@ function(mmfg_procmap_library)
     mmfg_source(procmap PROCMAP_SOURCE_PATH https://github.com/hzqst/procmap.git
         405a9b9ab23c7d2aa6602509d4d0bca34c6aa527 "CMakeLists.txt;include/procmap/MemoryMap.hpp" source)
     set(BUILD_TESTING OFF)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     add_subdirectory("${source}" "${CMAKE_BINARY_DIR}/vendor/procmap" EXCLUDE_FROM_ALL)
 endfunction()
 
@@ -95,6 +100,7 @@ function(mmfg_bullet_library)
     mmfg_source(bullet BULLET3_SOURCE_PATH https://github.com/hzqst/bullet3.git
         1217225ca0ad39a7982513d47ca7364ed16f0043 "CMakeLists.txt;src/btBulletDynamicsCommon.h" source)
     set(BUILD_SHARED_LIBS OFF)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(BUILD_BULLET3 ON)
     foreach(option BULLET2_DEMOS BULLET_ROBOTICS_EXTRA BULLET_ROBOTICS_GUI_EXTRA CLSOCKET
         CONVEX_DECOMPOSITION_EXTRA CPU_DEMO NET EXTRAS GIMPACTUTILS_EXTRA HACD_EXTRA
