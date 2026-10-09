@@ -1,0 +1,5 @@
+/build*/
+/install/
+/output/
+/.vs/
+/.clang-format

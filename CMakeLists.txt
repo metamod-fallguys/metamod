@@ -1,113 +1,66 @@
-# metamod project
-project(metamod)
+cmake_minimum_required(VERSION 3.21)
+option(FORMAT_VALIDATION_ONLY "Configure formatting without compilers or native dependencies" OFF)
+if(FORMAT_VALIDATION_ONLY)
+    project(FormatValidation LANGUAGES NONE)
+    include(cmake/FormatValidation.cmake)
+    return()
+endif()
+include(cmake/Platform.cmake)
+project(metamod LANGUAGES C CXX)
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build configuration" FORCE)
+endif()
+include(cmake/SDK.cmake)
 
-# Define source files
-set(METAMOD_SOURCES
-    api_hook.cpp
-    api_info.cpp
-    CDetour/asm/asm.cpp
-    CDetour/detours.cpp
-    commands_meta.cpp
-    conf_meta.cpp
-    dllapi.cpp
-    engineinfo.cpp
-    engine_api.cpp
-    game_autodetect.cpp
-    game_support.cpp
-    h_export.cpp
-    linkgame.cpp
-    linkplug.cpp
-    log_meta.cpp
-    metamod.cpp
-    meta_eiface.cpp
-    mhook.cpp
-    mlist.cpp
-    mplayer.cpp
-    mplugin.cpp
-    mqueue.cpp
-    mreg.cpp
-    mutil.cpp
-    osdep.cpp
-    osdep_p.cpp
-    reg_support.cpp
-    sdk_util.cpp
-    studioapi.cpp
-    support_meta.cpp
-    thread_logparse.cpp
-    vdate.cpp
+add_library(metamod SHARED
+    src/api_hook.cpp
+    src/api_info.cpp
+    src/CDetour/asm/asm.cpp
+    src/CDetour/detours.cpp
+    src/commands_meta.cpp
+    src/conf_meta.cpp
+    src/dllapi.cpp
+    src/engineinfo.cpp
+    src/engine_api.cpp
+    src/game_autodetect.cpp
+    src/game_support.cpp
+    src/h_export.cpp
+    src/linkgame.cpp
+    src/linkplug.cpp
+    src/log_meta.cpp
+    src/metamod.cpp
+    src/meta_eiface.cpp
+    src/mhook.cpp
+    src/mlist.cpp
+    src/mplayer.cpp
+    src/mplugin.cpp
+    src/mqueue.cpp
+    src/mreg.cpp
+    src/mutil.cpp
+    src/osdep.cpp
+    src/osdep_p.cpp
+    src/reg_support.cpp
+    src/sdk_util.cpp
+    src/studioapi.cpp
+    src/support_meta.cpp
+    src/thread_logparse.cpp
+    src/vdate.cpp
 )
-
-# Platform-specific source files
+mmfg_configure_target(metamod)
+target_link_libraries(metamod PRIVATE Metamod::SDK)
+target_compile_definitions(metamod PRIVATE __METAMOD_BUILD__)
+target_include_directories(metamod PRIVATE src/CDetour)
+mmfg_capstone_library()
+target_link_libraries(metamod PRIVATE capstone-static Capstone::Headers)
 if(WIN32)
-    list(APPEND METAMOD_SOURCES
-        osdep_detect_gamedll_win32.cpp
-        osdep_linkent_win32.cpp
-    )
+    target_sources(metamod PRIVATE src/osdep_detect_gamedll_win32.cpp src/osdep_linkent_win32.cpp src/res_meta.rc)
+    target_link_options(metamod PRIVATE "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/src/metamod.def")
+    target_compile_definitions(metamod PRIVATE __INTERNALS_USE_REGPARAMS__)
 else()
-    list(APPEND METAMOD_SOURCES
-        osdep_detect_gamedll_linux.cpp
-        osdep_linkent_linux.cpp
-    )
+    target_sources(metamod PRIVATE src/osdep_detect_gamedll_linux.cpp src/osdep_linkent_linux.cpp)
+    target_compile_definitions(metamod PRIVATE $<$<NOT:$<CONFIG:Debug>>:__INTERNALS_USE_REGPARAMS__>)
+    mmfg_procmap_library()
+    target_link_libraries(metamod PRIVATE procmap)
 endif()
 
-# Add include directories
-include_directories(
-    CDetour
-    ${CAPSTONE_INCLUDE_DIR}
-)
-
-# Linux-specific include directories
-if(UNIX)
-    include_directories(${PROCMAP_INCLUDE_DIR})
-endif()
-
-# Add preprocessor definitions
-add_definitions(-D__METAMOD_BUILD__)
-
-# Create shared library
-add_library(metamod SHARED ${METAMOD_SOURCES})
-
-# Set target properties
-set_target_properties(metamod PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME "metamod"
-)
-
-# Match metamod/Config.mak: the OPT (release) i386 build uses the regparm(3)
-# calling convention for internal functions (see comp_dep.h DLLINTERNAL).
-if(UNIX AND NOT METAMOD_64BIT AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(metamod PRIVATE __INTERNALS_USE_REGPARAMS__)
-endif()
-
-# Windows-specific settings
-if(WIN32)
-    # Match metamod.vcxproj / metamod/Config.mak: on i386 use the regparm(3)
-    # calling convention for internal functions (see comp_dep.h DLLINTERNAL).
-    target_compile_definitions(metamod PRIVATE __INTERNALS_USE_REGPARAMS__)
-
-    # Add module definition file
-    set_target_properties(metamod PROPERTIES
-        LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/metamod.def\""
-    )
-
-    # Add resource file
-    target_sources(metamod PRIVATE res_meta.rc)
-endif()
-
-# Link libraries
-target_link_libraries(metamod
-    ${CAPSTONE_LIBRARIES}
-)
-
-# Linux-specific linking
-if(UNIX)
-    target_link_libraries(metamod
-        ${PROCMAP_LIBRARIES}
-        dl
-        m
-    )
-    # Statically link libgcc and libstdc++ for better compatibility
-    set_target_properties(metamod PROPERTIES
-        LINK_FLAGS "-static-libgcc -static-libstdc++"
-    )
-endif() 
+include(cmake/FormatValidation.cmake)

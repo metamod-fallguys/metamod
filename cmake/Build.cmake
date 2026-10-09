@@ -1,0 +1,30 @@
+include_guard(GLOBAL)
+
+function(mmfg_configure_target target)
+    if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(FATAL_ERROR "${target} requires 32-bit compilation; use -A Win32 on Windows.")
+    endif()
+    target_compile_features(${target} PRIVATE cxx_std_17)
+    set_target_properties(${target} PROPERTIES PREFIX "" DEBUG_POSTFIX "" POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(MSVC)
+        target_compile_definitions(${target} PRIVATE WIN32 _WINDOWS _USRDLL _CRT_SECURE_NO_WARNINGS
+            $<$<CONFIG:Debug>:_DEBUG> $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+        target_compile_options(${target} PRIVATE /Zi)
+        target_link_options(${target} PRIVATE /DEBUG)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_compile_definitions(${target} PRIVATE PLATFORM_POSIX LINUX _LINUX
+            $<$<CONFIG:Debug>:_DEBUG> $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+        target_compile_options(${target} PRIVATE -m32 -fno-exceptions -fno-rtti -fvisibility=hidden
+            -march=i686 -mtune=generic -msse -msse2 -g $<$<NOT:$<CONFIG:Debug>>:-O2>)
+        target_link_options(${target} PRIVATE -m32 -static-libgcc -static-libstdc++)
+        target_link_libraries(${target} PRIVATE dl m)
+    else()
+        message(FATAL_ERROR "Supported platforms are Windows MSVC Win32 and Linux i386.")
+    endif()
+    install(TARGETS ${target} RUNTIME DESTINATION addons/metamod/dlls
+        LIBRARY DESTINATION addons/metamod/dlls)
+    if(MSVC)
+        install(FILES "$<TARGET_PDB_FILE:${target}>" DESTINATION addons/metamod/dlls OPTIONAL)
+    endif()
+endfunction()

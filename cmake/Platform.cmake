@@ -1,0 +1,12 @@
+# Included before project() so compiler detection uses the actual engine ABI.
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+option(METAMOD_64BIT "Compile as 64bit (unsupported by the Sven Co-op SDK)" OFF)
+if(METAMOD_64BIT)
+    message(FATAL_ERROR "The Sven Co-op SDK requires a 32-bit build.")
+endif()
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
+    foreach(flag CMAKE_C_FLAGS_INIT CMAKE_CXX_FLAGS_INIT CMAKE_SHARED_LINKER_FLAGS_INIT)
+        string(APPEND ${flag} " -m32")
+    endforeach()
+endif()

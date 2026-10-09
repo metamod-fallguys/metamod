@@ -1,0 +1,5 @@
+include/HLSDK/
+src/CDetour/
+**/thirdparty/**
+**/build/**
+**/install/**
