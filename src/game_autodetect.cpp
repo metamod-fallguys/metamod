@@ -44,9 +44,11 @@
 //TODO: add META_DEBUG
 const char* DLLINTERNAL autodetect_gamedll(const gamedll_t* gamedll, const char* knownfn)
 {
-    static char    buf[256];
-    char           dllpath[256];
-    char           fnpath[256];
+    static char buf[256];
+    // full_gamedir_path() resolves through realpath(), which writes up to
+    // PATH_MAX bytes whatever room the caller has, so these need PATH_MAX.
+    char           dllpath[PATH_MAX];
+    char           fnpath[PATH_MAX];
     DIR*           dir;
     struct dirent* ent;
     unsigned int   fn_len;

@@ -353,6 +353,7 @@ MPlugin* DLLINTERNAL MPluginList::add(MPlugin* padd)
 {
     int      i;
     MPlugin* iplug;
+    char*    cp;
 
     // Find either:
     //  - a slot in the list that's not being used
@@ -374,14 +375,27 @@ MPlugin* DLLINTERNAL MPluginList::add(MPlugin* padd)
 
     // copy filename into this free slot
     STRNCPY(iplug->filename, padd->filename, sizeof(iplug->filename));
-    // Copy file offset ptr.
-    // Can't just copy ptr, as it points to offset in padd, which will go
-    // away; need to point to corresponding offset in iplug.
-    iplug->file = iplug->filename + (padd->file - padd->filename);
     // copy description
     STRNCPY(iplug->desc, padd->desc, sizeof(iplug->desc));
     // copy pathname
     STRNCPY(iplug->pathname, padd->pathname, sizeof(iplug->pathname));
+    // Recompute file pointer from the copies made above.
+    // Can't just copy ptr, as it points to offset in padd, which will go
+    // away; and it may point into padd->pathname (after resolve()) instead of
+    // padd->filename, so the offset from filename is not always valid.
+    cp = strrchr(iplug->pathname, '/');
+    if (cp)
+    {
+        iplug->file = cp + 1;
+    }
+    else
+    {
+        cp = strrchr(iplug->filename, '/');
+        if (cp)
+            iplug->file = cp + 1;
+        else
+            iplug->file = iplug->filename;
+    }
     // copy source
     iplug->source = padd->source;
     // copy loader-plugin

@@ -236,5 +236,6 @@ void DLLHIDDEN meta_QueryClientCvarValue(const edict_t* player, const char* cvar
 {
     g_Players.set_player_cvar_query(player, cvarName);
 
-    (*g_engfuncs.pfnQueryClientCvarValue)(player, cvarName);
+    if (g_engfuncs.pfnQueryClientCvarValue)
+        (*g_engfuncs.pfnQueryClientCvarValue)(player, cvarName);
 }

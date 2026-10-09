@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 option(FORMAT_VALIDATION_ONLY "Configure formatting without compilers or native dependencies" OFF)
+option(MMFG_METAMOD_BUILD_TESTS "Build the metamod component test suite" OFF)
 if(FORMAT_VALIDATION_ONLY)
     project(FormatValidation LANGUAGES NONE)
     include(cmake/FormatValidation.cmake)
@@ -58,9 +59,17 @@ if(WIN32)
     target_compile_definitions(metamod PRIVATE __INTERNALS_USE_REGPARAMS__)
 else()
     target_sources(metamod PRIVATE src/osdep_detect_gamedll_linux.cpp src/osdep_linkent_linux.cpp)
+    # Legacy engine/plugin callers may provide only 4-byte stack alignment.
+    # Keep the default 16-byte preferred alignment for SSE and outgoing calls.
+    target_compile_options(metamod PRIVATE -mincoming-stack-boundary=2)
     target_compile_definitions(metamod PRIVATE $<$<NOT:$<CONFIG:Debug>>:__INTERNALS_USE_REGPARAMS__>)
     mmfg_procmap_library()
     target_link_libraries(metamod PRIVATE procmap)
 endif()
 
 include(cmake/FormatValidation.cmake)
+
+if(MMFG_METAMOD_BUILD_TESTS)
+    include(CTest)
+    add_subdirectory(tests)
+endif()

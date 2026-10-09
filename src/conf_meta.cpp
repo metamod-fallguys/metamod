@@ -204,6 +204,7 @@ mBOOL DLLINTERNAL MConfig::load(const char* fn)
             continue;
         }
     }
+    free(filename);
     filename = strdup(loadfile);
     fclose(fp);
     return (mTRUE);

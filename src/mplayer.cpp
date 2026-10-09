@@ -75,6 +75,9 @@ MPlayer::MPlayer(const MPlayer& rhs) : isQueried(rhs.isQueried),
 // Assignment operator
 MPlayer& DLLINTERNAL MPlayer::operator=(const MPlayer& rhs)
 {
+    if (this == &rhs)
+        return *this;
+
     isQueried = rhs.isQueried;
 
     if (cvarName)

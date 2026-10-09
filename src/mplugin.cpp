@@ -65,31 +65,37 @@ mBOOL DLLINTERNAL MPlugin::ini_parseline(const char* line)
     char* ptr_token;
     char* cp;
     char* tmp_line;
+    char* tmp_alloc;
 
     //
-    tmp_line = strdup(line);
-    if (!tmp_line)
+    tmp_alloc = strdup(line);
+    if (!tmp_alloc)
         RETURN_ERRNO(mFALSE, ME_NOMEM);
+    tmp_line = tmp_alloc;
 
     // skip whitespace at start of line
     while (*tmp_line == ' ' || *tmp_line == '\t') tmp_line++;
 
     // remove whitespace at end of line
-    cp = tmp_line + strlen(tmp_line) - 1;
-    while (*cp == ' ' || *cp == '\t') *cp-- = '\0';
+    int len = strlen(tmp_line);
+    if (len > 0)
+    {
+        cp = tmp_line + len - 1;
+        while (cp >= tmp_line && (*cp == ' ' || *cp == '\t')) *cp-- = '\0';
+    }
 
     // skip empty lines
     if (tmp_line[0] == '\0')
     {
         META_DEBUG(7, ("ini: Ignoring empty line: %s", tmp_line));
-        free(tmp_line);
+        free(tmp_alloc);
         RETURN_ERRNO(mFALSE, ME_BLANK);
     }
 
     if (tmp_line[0] == '#' || tmp_line[0] == ';' || strstr(tmp_line, "//") == tmp_line)
     {
         META_DEBUG(7, ("ini: Ignoring commented line: %s", tmp_line));
-        free(tmp_line);
+        free(tmp_alloc);
         RETURN_ERRNO(mFALSE, ME_COMMENT);
     }
 
@@ -97,7 +103,7 @@ mBOOL DLLINTERNAL MPlugin::ini_parseline(const char* line)
     token = strtok_r(tmp_line, " \t", &ptr_token);
     if (!token)
     {
-        free(tmp_line);
+        free(tmp_alloc);
         RETURN_ERRNO(mFALSE, ME_FORMAT);
     }
     if (strcasecmp(token, PLATFORM) == 0)
@@ -112,7 +118,7 @@ mBOOL DLLINTERNAL MPlugin::ini_parseline(const char* line)
     {
         // plugin is not for this OS
         META_DEBUG(7, ("ini: Ignoring entry for %s", token));
-        free(tmp_line);
+        free(tmp_alloc);
         RETURN_ERRNO(mFALSE, ME_OSNOTSUP);
     }
 
@@ -120,7 +126,7 @@ mBOOL DLLINTERNAL MPlugin::ini_parseline(const char* line)
     token = strtok_r(NULL, " \t\r\n", &ptr_token);
     if (!token)
     {
-        free(tmp_line);
+        free(tmp_alloc);
         RETURN_ERRNO(mFALSE, ME_FORMAT);
     }
     STRNCPY(filename, token, sizeof(filename));
@@ -154,7 +160,7 @@ mBOOL DLLINTERNAL MPlugin::ini_parseline(const char* line)
     source = PS_INI;
     status = PL_VALID;
 
-    free(tmp_line);
+    free(tmp_alloc);
     return (mTRUE);
 }
 
@@ -867,6 +873,18 @@ mBOOL DLLINTERNAL MPlugin::query(void)
     return (mTRUE);
 }
 
+// Release the plugin's private copies of the gameDLL api tables allocated at
+// the start of attach(). A failed Meta_Attach does not retain ownership.
+static void DLLINTERNAL free_unattached_api_tables(gamedll_funcs_t* funcs)
+{
+    free(funcs->dllapi_table);
+    funcs->dllapi_table = NULL;
+    free(funcs->newapi_table);
+    funcs->newapi_table = NULL;
+    free(funcs->studio_blend_api);
+    funcs->studio_blend_api = NULL;
+}
+
 // Attach a plugin:
 //	- dlsym() and call:
 //	    Meta_Attach - get table of api tables, give meta_globals
@@ -941,6 +959,7 @@ mBOOL DLLINTERNAL MPlugin::attach(PLUG_LOADTIME now)
     if (!(pfn_attach = (META_ATTACH_FN)DLSYM(handle, "Meta_Attach")))
     {
         META_WARNING("dll: Failed attach plugin '%s': Couldn't find Meta_Attach(): %s", desc, DLERROR());
+        free_unattached_api_tables(&gamedll_funcs);
         // caller will dlclose()
         RETURN_ERRNO(mFALSE, ME_DLMISSING);
     }
@@ -952,6 +971,7 @@ mBOOL DLLINTERNAL MPlugin::attach(PLUG_LOADTIME now)
     if (ret != TRUE)
     {
         META_WARNING("dll: Failed attach plugin '%s': Error from Meta_Attach(): %d", desc, ret);
+        free_unattached_api_tables(&gamedll_funcs);
         // caller will dlclose()
         RETURN_ERRNO(mFALSE, ME_DLERROR);
     }
