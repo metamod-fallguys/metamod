@@ -114,7 +114,42 @@ mmetest_add(mmfg_test_mplayer_assignment
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_mplayer_assignment.cpp"
         ${MMFG_TEST_CORE_SOURCES})
 
+mmetest_add(mmfg_test_api_hook
+    SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_api_hook.cpp"
+        "${MMFG_TEST_COMPONENT_ROOT}/src/api_hook.cpp"
+        "${MMFG_TEST_COMPONENT_ROOT}/src/api_info.cpp"
+        ${MMFG_TEST_PLUGIN_SOURCES})
+target_compile_definitions(mmfg_test_api_hook PRIVATE MMFG_TEST_REAL_API_INFO)
+add_library(mmfg_test_hook_plugin SHARED "${CMAKE_CURRENT_LIST_DIR}/fake_hook_plugin.cpp")
+target_include_directories(mmfg_test_hook_plugin PRIVATE ${MMFG_TEST_INCLUDE_DIRS})
+set_target_properties(mmfg_test_hook_plugin PROPERTIES PREFIX "")
+if(MSVC)
+    target_compile_definitions(mmfg_test_hook_plugin PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_definitions(mmfg_test_hook_plugin PRIVATE LINUX _LINUX)
+endif()
+add_dependencies(mmfg_test_api_hook mmfg_test_hook_plugin)
+target_compile_definitions(mmfg_test_api_hook PRIVATE
+    "MMFG_TEST_HOOK_PLUGIN=\"$<TARGET_FILE:mmfg_test_hook_plugin>\"")
+
+# Optional comparison using an earlier dispatcher with the same harness,
+# support code and compiler flags. Keep the exported source in the build tree.
+set(MMFG_METAMOD_HOOK_BASELINE_SOURCE "" CACHE FILEPATH
+    "Earlier api_hook.cpp to compare with the current dispatcher")
+if(MMFG_METAMOD_HOOK_BASELINE_SOURCE)
+    mmetest_add(mmfg_test_api_hook_baseline
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_api_hook.cpp"
+            "${MMFG_METAMOD_HOOK_BASELINE_SOURCE}"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/api_info.cpp"
+            ${MMFG_TEST_PLUGIN_SOURCES})
+    target_compile_definitions(mmfg_test_api_hook_baseline PRIVATE MMFG_TEST_REAL_API_INFO
+        "MMFG_TEST_HOOK_PLUGIN=\"$<TARGET_FILE:mmfg_test_hook_plugin>\"")
+    add_dependencies(mmfg_test_api_hook_baseline mmfg_test_hook_plugin)
+endif()
+
 if(UNIX)
+    target_compile_definitions(mmfg_test_api_hook PRIVATE MMFG_TEST_WRAP_REALLOC)
+    target_link_options(mmfg_test_api_hook PRIVATE -Wl,--wrap=realloc)
     mmetest_add(mmfg_test_config_reload
         LINUX_ONLY
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_config_reload.cpp"

@@ -62,6 +62,57 @@ public:
 
     // constructor:
     MPluginList(const char* ifile) DLLINTERNAL;
+    // Keep the destructor on the platform ABI (also used by static test lists).
+    ~MPluginList();
+
+    // A cursor belongs to one dispatch phase. Rebuilds, including those in
+    // nested hooks, cannot consume another cursor's update notification.
+    class HookIterator
+    {
+    public:
+        HookIterator(MPluginList& owner, enum_api_t api, bool post) : owner(owner), api(api), phase(post ? P_POST : P_PRE), last_plugin(NULL), generation(owner.hook_generation), cached(owner.hook_lists_valid), position(0), count(owner.hook_lists[api][phase].count), plugs(owner.hook_lists[api][phase].plugs)
+        {
+        }
+
+        MPlugin* next()
+        {
+            if (unlikely(generation != owner.hook_generation))
+                refresh();
+            if (likely(cached))
+            {
+                if (position == count)
+                    return NULL;
+                last_plugin = plugs[position++];
+                return last_plugin;
+            }
+            // Allocation failure must not silently disable hooks. Scan the
+            // current slots until a later successful rebuild restores caching.
+            for (MPlugin* plugin = last_plugin ? last_plugin + 1 : owner.plist;
+                 plugin < owner.plist + owner.endlist; ++plugin)
+            {
+                if (plugin->status == PL_RUNNING &&
+                    (phase == P_POST ? plugin->get_api_post_table(api) : plugin->get_api_table(api)))
+                {
+                    last_plugin = plugin;
+                    return plugin;
+                }
+            }
+            return NULL;
+        }
+
+    private:
+        void DLLINTERNAL   refresh();
+        MPluginList&       owner;
+        enum_api_t         api;
+        int                phase;
+        MPlugin*           last_plugin;
+        unsigned long long generation;
+        bool               cached;
+        int                position, count;
+        MPlugin* const*    plugs;
+    };
+
+    void DLLINTERNAL rebuild_hook_lists();
 
     // functions:
     void DLLINTERNAL     reset_plugin(MPlugin* pl_find);
@@ -91,6 +142,25 @@ public:
     void DLLINTERNAL  show(int source_index);        // list plugins to console
     void DLLINTERNAL  show(void) { show(-1); };      // list plugins to console
     void DLLINTERNAL  show_client(edict_t* pEntity); // list plugins to player client
+
+private:
+    enum
+    {
+        HOOK_API_COUNT   = e_api_studioapi + 1,
+        HOOK_PHASE_COUNT = 2
+    };
+    struct HookList
+    {
+        int       count;
+        MPlugin** plugs;
+    };
+    HookList           hook_lists[HOOK_API_COUNT][HOOK_PHASE_COUNT];
+    MPlugin**          hook_list_data;
+    unsigned long long hook_generation;
+    bool               hook_lists_valid;
+
+    MPluginList(const MPluginList&)            = delete;
+    MPluginList& operator=(const MPluginList&) = delete;
 };
 
 #endif /* MLIST_H */

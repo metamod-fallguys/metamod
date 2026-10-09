@@ -68,10 +68,12 @@ mutil_funcs_t MetaUtilFunctions;
 // api_hook machinery out of the link.
 // ============================================================
 
+#ifndef MMFG_TEST_REAL_API_INFO
 const dllapi_info_t    dllapi_info    = {};
 const newapi_info_t    newapi_info    = {};
 const studioapi_info_t studioapi_info = {};
 const engine_info_t    engine_info    = {};
+#endif
 
 // ============================================================
 // Captured engine output

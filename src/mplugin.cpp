@@ -662,6 +662,7 @@ mBOOL DLLINTERNAL MPlugin::load(PLUG_LOADTIME now)
 
     status = PL_RUNNING;
     action = PA_NONE;
+    Plugins->rebuild_hook_lists();
 
     // If not loading at server startup, then need to call plugin's
     // GameInit, since we've passed that.
@@ -1255,6 +1256,7 @@ mBOOL DLLINTERNAL MPlugin::unload(PLUG_LOADTIME now, PL_UNLOAD_REASON reason, PL
         action = PA_LOAD;
         clear();
     }
+    Plugins->rebuild_hook_lists();
     META_LOG("dll: Unloaded plugin '%s' for reason '%s'", desc, str_reason(reason, real_reason));
     return (mTRUE);
 }
@@ -1374,6 +1376,7 @@ mBOOL MPlugin::pause(void)
     }
 
     status = PL_PAUSED;
+    Plugins->rebuild_hook_lists();
     META_LOG("Paused plugin '%s'", desc);
     return (mTRUE);
 }
@@ -1389,6 +1392,7 @@ mBOOL DLLINTERNAL MPlugin::unpause(void)
         RETURN_ERRNO(mFALSE, ME_BADREQ);
     }
     status = PL_RUNNING;
+    Plugins->rebuild_hook_lists();
     META_LOG("Unpaused plugin '%s'", desc);
     return (mTRUE);
 }
@@ -1438,6 +1442,10 @@ void DLLINTERNAL MPlugin::free_api_pointers(void)
         free(tables.engine);
     if (post_tables.engine)
         free(post_tables.engine);
+    if (tables.studio_blend_api)
+        free(tables.studio_blend_api);
+    if (post_tables.studio_blend_api)
+        free(post_tables.studio_blend_api);
 }
 
 // Clear a plugin (it failed a previous action and should be
@@ -1464,13 +1472,14 @@ mBOOL DLLINTERNAL MPlugin::clear(void)
 
     free_api_pointers();
 
-    status                     = PL_EMPTY;
-    action                     = PA_NULL;
-    handle                     = NULL;
-    info                       = NULL;
-    time_loaded                = 0;
-    gamedll_funcs.dllapi_table = NULL;
-    gamedll_funcs.newapi_table = NULL;
+    status                         = PL_EMPTY;
+    action                         = PA_NULL;
+    handle                         = NULL;
+    info                           = NULL;
+    time_loaded                    = 0;
+    gamedll_funcs.dllapi_table     = NULL;
+    gamedll_funcs.newapi_table     = NULL;
+    gamedll_funcs.studio_blend_api = NULL;
     memset(&tables, 0, sizeof(tables));
     memset(&post_tables, 0, sizeof(post_tables));
 

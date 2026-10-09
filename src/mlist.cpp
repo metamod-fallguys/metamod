@@ -49,11 +49,12 @@
 #include "osdep_p.h"
 
 // Constructor
-MPluginList::MPluginList(const char* ifile) : size(MAX_PLUGINS), endlist(0)
+MPluginList::MPluginList(const char* ifile) : size(MAX_PLUGINS), endlist(0), hook_list_data(NULL), hook_generation(0), hook_lists_valid(true)
 {
     int i;
     // store filename of ini file
     STRNCPY(inifile, ifile, sizeof(inifile));
+    memset(hook_lists, 0, sizeof(hook_lists));
     // initialize array
     for (i = 0; i < size; i++)
     {
@@ -64,10 +65,98 @@ MPluginList::MPluginList(const char* ifile) : size(MAX_PLUGINS), endlist(0)
     endlist = 0;
 }
 
+MPluginList::~MPluginList()
+{
+    free(hook_list_data);
+}
+
+void DLLINTERNAL MPluginList::HookIterator::refresh()
+{
+    generation           = owner.hook_generation;
+    cached               = owner.hook_lists_valid;
+    const HookList& list = owner.hook_lists[api][phase];
+    plugs                = list.plugs;
+    count                = list.count;
+    position             = 0;
+    // plist has stable addresses and each filtered list is in slot order.
+    // Resume strictly after the last visited slot, even if it was removed or
+    // reused. Newly enabled earlier slots wait until the next dispatch phase.
+    if (cached && last_plugin)
+        while (position < count && plugs[position] <= last_plugin)
+            ++position;
+}
+
+void DLLINTERNAL MPluginList::rebuild_hook_lists()
+{
+    // Single engine-thread lifecycle, just like the plugin list itself. Every
+    // attempt invalidates active cursors, including failed allocations.
+    ++hook_generation;
+    hook_lists_valid = false;
+    memset(hook_lists, 0, sizeof(hook_lists));
+    int total = 0;
+    for (int i = 0; i < endlist; ++i)
+    {
+        if (plist[i].status != PL_RUNNING)
+            continue;
+        for (int api = 0; api < HOOK_API_COUNT; ++api)
+        {
+            if (plist[i].get_api_table(static_cast<enum_api_t>(api)))
+            {
+                ++hook_lists[api][P_PRE].count;
+                ++total;
+            }
+            if (plist[i].get_api_post_table(static_cast<enum_api_t>(api)))
+            {
+                ++hook_lists[api][P_POST].count;
+                ++total;
+            }
+        }
+    }
+    if (total)
+    {
+        MPlugin** data = static_cast<MPlugin**>(realloc(hook_list_data, total * sizeof(MPlugin*)));
+        if (!data)
+        {
+            memset(hook_lists, 0, sizeof(hook_lists));
+            META_WARNING("Couldn't rebuild hook lists; using plugin scan: %s", strerror(errno));
+            return;
+        }
+        hook_list_data = data;
+    }
+    else
+    {
+        free(hook_list_data);
+        hook_list_data = NULL;
+    }
+    int offset = 0;
+    for (int api = 0; api < HOOK_API_COUNT; ++api)
+        for (int phase = 0; phase < HOOK_PHASE_COUNT; ++phase)
+        {
+            HookList& list = hook_lists[api][phase];
+            list.plugs     = list.count ? hook_list_data + offset : NULL;
+            offset += list.count;
+        }
+    int positions[HOOK_API_COUNT][HOOK_PHASE_COUNT] = {};
+    for (int i = 0; i < endlist; ++i)
+    {
+        if (plist[i].status != PL_RUNNING)
+            continue;
+        for (int api = 0; api < HOOK_API_COUNT; ++api)
+        {
+            if (plist[i].get_api_table(static_cast<enum_api_t>(api)))
+                hook_lists[api][P_PRE].plugs[positions[api][P_PRE]++] = &plist[i];
+            if (plist[i].get_api_post_table(static_cast<enum_api_t>(api)))
+                hook_lists[api][P_POST].plugs[positions[api][P_POST]++] = &plist[i];
+        }
+    }
+    hook_lists_valid = true;
+}
+
 // Resets plugin to empty
 void DLLINTERNAL MPluginList::reset_plugin(MPlugin* pl_find)
 {
-    int i;
+    int  i;
+    bool was_running = pl_find->status == PL_RUNNING;
 
     //calculate index
     i = pl_find - &plist[0];
@@ -79,6 +168,8 @@ void DLLINTERNAL MPluginList::reset_plugin(MPlugin* pl_find)
     memset(pl_find, 0, sizeof(*pl_find));
 
     pl_find->index = i + 1; // 1-based
+    if (was_running)
+        rebuild_hook_lists();
 }
 
 // Find a plugin based on the plugin index #.
