@@ -141,8 +141,13 @@ mBOOL DLLINTERNAL setup_gamedll(gamedll_t* gamedll)
     char                  install_path[NAME_MAX];
     const game_modinfo_t* known;
     char *                cp, *strippedfn;
-    const char *          autofn = 0, *knownfn = 0, *usedfn = 0;
-    int                   override = 0;
+#ifdef linux
+    // Kept alive for the whole function: its address escapes through
+    // strippedfn -> usedfn -> knownfn and is used after the block below ends.
+    char temp_str[NAME_MAX];
+#endif
+    const char *autofn = 0, *knownfn = 0, *usedfn = 0;
+    int         override = 0;
 
     // Check for old-style "metagame.ini" file and complain.
     if (valid_gamedir_file(OLD_GAMEDLL_TXT))
@@ -187,8 +192,6 @@ mBOOL DLLINTERNAL setup_gamedll(gamedll_t* gamedll)
             // '_i386' part in them anymore, so cs_i386.so became cs.so. We
             // have to adapt to that and try to load the DSO name without the
             // '_*' part first, to see if we have a new version file available.
-            char temp_str[NAME_MAX];
-
             STRNCPY(temp_str, knownfn, sizeof(temp_str));
             strippedfn = temp_str;
 

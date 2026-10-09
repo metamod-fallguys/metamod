@@ -73,13 +73,18 @@ function(mmetest_add name)
         target_link_options(${name} PRIVATE -Wl,--gc-sections)
         if(MMFG_METAMOD_TESTS_SANITIZE)
             # The lifetime and bounds defects these tests guard against are only
-            # observable through the sanitizers.
-            target_compile_options(${name} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            # observable through the sanitizers. GCC needs the explicit
+            # use-after-scope instrumentation for the stack lifetime checks.
+            target_compile_options(${name} PRIVATE
+                -fsanitize=address,undefined -fsanitize-address-use-after-scope -fno-omit-frame-pointer)
             target_link_options(${name} PRIVATE -fsanitize=address,undefined)
         endif()
         target_link_libraries(${name} PRIVATE dl)
     endif()
     add_test(NAME ${name} COMMAND ${name})
+    # META_LOG writes metamod.log into the working directory; keep it out of the
+    # source tree.
+    set_tests_properties(${name} PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endfunction()
 
 mmetest_add(mmfg_test_mplugin_ini
@@ -110,4 +115,14 @@ if(UNIX)
     add_dependencies(mmfg_test_game_autodetect mmfg_test_fake_gamedll)
     target_compile_definitions(mmfg_test_game_autodetect PRIVATE
         "MMFG_TEST_FAKE_GAMEDLL=\"$<TARGET_FILE:mmfg_test_fake_gamedll>\"")
+
+    mmetest_add(mmfg_test_game_support
+        LINUX_ONLY
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test_game_support.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/game_support.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/game_autodetect.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/osdep_detect_gamedll_linux.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/conf_meta.cpp"
+            ${MMFG_TEST_CORE_SOURCES})
 endif()
