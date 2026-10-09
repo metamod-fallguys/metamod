@@ -150,6 +150,7 @@ CDetour::CDetour(void*callbackfunction, void **ptrampoline, void *pAddress)
 	enabled = false;
 	detoured = false;
 	detour_address = pAddress;
+	detour_patch_address = pAddress;
 	detour_trampoline = NULL;
 	detour_callback = callbackfunction;
 	trampoline = ptrampoline;
@@ -191,7 +192,11 @@ bool CDetour::CreateDetour()
 	int shortBytes = copy_bytes((unsigned char *)detour_address, NULL, OP_JMP_SIZE);
 	detour_restore.bytes = copy_bytes((unsigned char *)detour_address, NULL, X64_ABS_SIZE);
 #else
-	detour_restore.bytes = copy_bytes((unsigned char *)detour_address, NULL, OP_JMP_SIZE);
+	// Keep the original entry valid for indirect callers under IBT.
+	static const unsigned char endbr32[] = { 0xf3, 0x0f, 0x1e, 0xfb };
+	if (memcmp(detour_address, endbr32, sizeof(endbr32)) == 0)
+		detour_patch_address = (unsigned char *)detour_address + sizeof(endbr32);
+	detour_restore.bytes = copy_bytes((unsigned char *)detour_patch_address, NULL, OP_JMP_SIZE);
 #endif
 
 	JitWriter wr;
@@ -202,6 +207,13 @@ bool CDetour::CreateDetour()
 	wr.outptr = NULL;
 
 jit_rewind:
+
+#if !defined(_WIN64) && !defined(__x86_64__)
+	// The call-through trampoline is itself an indirect-call target, including
+	// when the original function did not have a landing pad.
+	for (size_t i = 0; i < sizeof(endbr32); i++)
+		jit->write_ubyte(endbr32[i]);
+#endif
 
 	/* Patch old bytes in */
 	if (wr.outbase != NULL)
@@ -214,14 +226,14 @@ jit_rewind:
 			detour_restore.bytes = shortBytes;
 #endif
 		/* Save restore bits */
-		memcpy(detour_restore.patch, detour_address, detour_restore.bytes);
+		memcpy(detour_restore.patch, detour_patch_address, detour_restore.bytes);
 
-		copy_bytes((unsigned char *)detour_address, (unsigned char*)wr.outptr, detour_restore.bytes);
+		copy_bytes((unsigned char *)detour_patch_address, (unsigned char*)wr.outptr, detour_restore.bytes);
 	}
 	wr.outptr += detour_restore.bytes;
 
 	/* Return to the original function */
-	AbsJump(jit, (unsigned char *)detour_address + detour_restore.bytes);
+	AbsJump(jit, (unsigned char *)detour_patch_address + detour_restore.bytes);
 
 	if (wr.outbase == NULL)
 	{
@@ -259,7 +271,7 @@ void CDetour::EnableDetour()
 {
 	if (!detoured)
 	{
-		DoGatePatch((unsigned char *)detour_address, detour_callback);
+		DoGatePatch((unsigned char *)detour_patch_address, detour_callback);
 		detoured = true;
 	}
 }
@@ -269,7 +281,7 @@ void CDetour::DisableDetour()
 	if (detoured)
 	{
 		/* Remove the patch */
-		ApplyPatch(detour_address, 0, &detour_restore, NULL);
+		ApplyPatch(detour_patch_address, 0, &detour_restore, NULL);
 		detoured = false;
 	}
 }
