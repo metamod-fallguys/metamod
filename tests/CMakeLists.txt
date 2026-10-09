@@ -113,6 +113,15 @@ if(UNIX)
         PREFIX ""
         OUTPUT_NAME "mmfg_fake_gamedll")
 
+    mmetest_add(mmfg_test_mplugin_attach
+        LINUX_ONLY
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_mplugin_attach.cpp"
+            ${MMFG_TEST_PLUGIN_SOURCES})
+    target_link_options(mmfg_test_mplugin_attach PRIVATE -rdynamic)
+    add_dependencies(mmfg_test_mplugin_attach mmfg_test_fake_gamedll)
+    target_compile_definitions(mmfg_test_mplugin_attach PRIVATE
+        "MMFG_TEST_FAKE_GAMEDLL=\"$<TARGET_FILE:mmfg_test_fake_gamedll>\"")
+
     mmetest_add(mmfg_test_game_autodetect
         LINUX_ONLY
         SOURCES

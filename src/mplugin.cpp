@@ -873,6 +873,18 @@ mBOOL DLLINTERNAL MPlugin::query(void)
     return (mTRUE);
 }
 
+// Release the plugin's private copies of the gameDLL api tables allocated at
+// the start of attach(). A failed Meta_Attach does not retain ownership.
+static void DLLINTERNAL free_unattached_api_tables(gamedll_funcs_t* funcs)
+{
+    free(funcs->dllapi_table);
+    funcs->dllapi_table = NULL;
+    free(funcs->newapi_table);
+    funcs->newapi_table = NULL;
+    free(funcs->studio_blend_api);
+    funcs->studio_blend_api = NULL;
+}
+
 // Attach a plugin:
 //	- dlsym() and call:
 //	    Meta_Attach - get table of api tables, give meta_globals
@@ -947,6 +959,7 @@ mBOOL DLLINTERNAL MPlugin::attach(PLUG_LOADTIME now)
     if (!(pfn_attach = (META_ATTACH_FN)DLSYM(handle, "Meta_Attach")))
     {
         META_WARNING("dll: Failed attach plugin '%s': Couldn't find Meta_Attach(): %s", desc, DLERROR());
+        free_unattached_api_tables(&gamedll_funcs);
         // caller will dlclose()
         RETURN_ERRNO(mFALSE, ME_DLMISSING);
     }
@@ -958,6 +971,7 @@ mBOOL DLLINTERNAL MPlugin::attach(PLUG_LOADTIME now)
     if (ret != TRUE)
     {
         META_WARNING("dll: Failed attach plugin '%s': Error from Meta_Attach(): %d", desc, ret);
+        free_unattached_api_tables(&gamedll_funcs);
         // caller will dlclose()
         RETURN_ERRNO(mFALSE, ME_DLERROR);
     }
