@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 option(FORMAT_VALIDATION_ONLY "Configure formatting without compilers or native dependencies" OFF)
+option(MMFG_METAMOD_BUILD_TESTS "Build the metamod component test suite" OFF)
 if(FORMAT_VALIDATION_ONLY)
     project(FormatValidation LANGUAGES NONE)
     include(cmake/FormatValidation.cmake)
@@ -64,3 +65,8 @@ else()
 endif()
 
 include(cmake/FormatValidation.cmake)
+
+if(MMFG_METAMOD_BUILD_TESTS)
+    include(CTest)
+    add_subdirectory(tests)
+endif()
