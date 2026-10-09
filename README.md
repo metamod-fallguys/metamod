@@ -9,13 +9,18 @@ CMake 3.21+, Git, and Windows MSVC Win32 or Linux i386 multilib are required.
 
 ```sh
 git clone --recursive https://github.com/metamod-fallguys/metamod.git
-cmake -S metamod -B build -A Win32
-cmake --build build --config Release
-cmake --install build --config Release --prefix install
+cd metamod
+cmake -S . -B build/x86/Release -A Win32
+cmake --build build/x86/Release --config Release
+cmake --install build/x86/Release --config Release
 ```
 
-On Linux omit `-A Win32` and add `-DCMAKE_BUILD_TYPE=Release`. Debug is also supported.
-Libraries install to `addons/metamod/dlls`; Windows installs matching PDBs.
+On Linux omit `-A Win32` and add `-DCMAKE_BUILD_TYPE=Release`.
+For Debug use `build/x86/Debug` and `--config Debug` on Windows, or
+`-DCMAKE_BUILD_TYPE=Debug` on Linux. Configure a separate tree for each configuration.
+Libraries install to `install/x86/<Config>/addons/metamod/dlls`; Windows installs
+matching PDBs. An explicit `CMAKE_INSTALL_PREFIX` or `cmake --install --prefix`
+overrides the default. Existing build trees retain their cached install prefix.
 
 Dependency CMake variables override environment defaults. An empty path fetches a fixed
 commit; invalid explicit paths fail. External source trees are read-only inputs.

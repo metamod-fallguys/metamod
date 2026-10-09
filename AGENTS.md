@@ -2,6 +2,8 @@
 
 This repository builds independently and as a subproject of metamod-fallguys.
 Public interface headers belong in include/, implementation and private headers in src/.
+Native builds use build/x86/<Config> and install/x86/<Config>; configure separate
+Debug/Release trees. Explicit install prefixes win; SDK imports do not set them.
 Use dependency SOURCE_PATH variables for local clones; defaults fetch fixed commits.
 Do not expose a dependency's src/ tree or change Sven Co-op ABI layouts during refactors.
 Preserve third-party source and licensing. Run native builds and format-check before delivery.
