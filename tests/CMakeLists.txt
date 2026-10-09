@@ -147,7 +147,6 @@ if(UNIX)
     # internal linkage.
     mmetest_add(mmfg_test_osdep_linkent_linux
         LINUX_ONLY
-        NO_UBSAN
         SOURCES
             "${CMAKE_CURRENT_LIST_DIR}/test_osdep_linkent_linux.cpp"
             ${MMFG_TEST_CORE_SOURCES})

@@ -43,7 +43,7 @@ static void make_indirect_jump(unsigned char* code, size_t code_size, void* fina
 
 static int test_trampoline_accepts_ff25(void)
 {
-    unsigned char code[8];
+    alignas(void*) unsigned char code[8];
 
     TEST("is_code_trampoline_jmp_opcode - accepts an FF 25 indirect jump");
     make_indirect_jump(code, sizeof(code), (void*)&fake_trampoline_target);
@@ -117,11 +117,11 @@ static int test_trampoline_walk_follows_chained_forwarders(void)
 
 static int test_construct_jmp_instruction(void)
 {
-    unsigned char code[BYTES_SIZE];
-    char          place[16];
-    unsigned long place_addr;
-    unsigned long target_addr;
-    unsigned long encoded;
+    alignas(unsigned long) unsigned char code[BYTES_SIZE];
+    char                                 place[16];
+    unsigned long                        place_addr;
+    unsigned long                        target_addr;
+    unsigned long                        encoded;
 
     TEST("construct_jmp_instruction - encodes a relative jump");
     memset(code, 0, sizeof(code));
