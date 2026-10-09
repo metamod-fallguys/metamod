@@ -37,19 +37,19 @@
 
 #ifdef linux
 // enable extra routines in system header files, like strsignal
-#  ifndef _GNU_SOURCE
-#    define _GNU_SOURCE
-#  endif
+#    ifndef _GNU_SOURCE
+#        define _GNU_SOURCE
+#    endif
 #endif /* linux */
 
-#include <string.h>			// strsignal, etc
+#include <string.h> // strsignal, etc
 
-#include <extdll.h>			// always
-#include "sdk_util.h"		// REG_SVR_COMMAND, etc
+#include <extdll.h>   // always
+#include "sdk_util.h" // REG_SVR_COMMAND, etc
 
-#include "reg_support.h"	// me
-#include "metamod.h"            // RegCmds, g_Players, etc
-#include "log_meta.h"		// META_ERROR, etc
+#include "reg_support.h" // me
+#include "metamod.h"     // RegCmds, g_Players, etc
+#include "log_meta.h"    // META_ERROR, etc
 
 // "Register" support.
 //
@@ -86,30 +86,33 @@
 // from the console that they no longer have an effect.
 //
 // Also note, the console commands for listing registered cmds and cvars
-// will try to show the name of the associated plugin. 
+// will try to show the name of the associated plugin.
 
 
 // Generic command handler, passed to the engine for any AddServerCommand
 // calls made by the plugin.  It finds the appropriate plugin function
 // pointer to call based on CMD_ARGV(0).
-void DLLHIDDEN meta_command_handler(void) {
-	MRegCmd *icmd;
-	const char *cmd;
+void DLLHIDDEN meta_command_handler(void)
+{
+    MRegCmd*    icmd;
+    const char* cmd;
 
-	META_DEBUG(5, ("called: meta_command_handler; arg0=%s args='%s'", CMD_ARGV(0), CMD_ARGS()));
-	cmd=CMD_ARGV(0);
-	if(!cmd) {
-		META_WARNING("Null command name in meta_command_handler() ??");
-		return;
-	}
+    META_DEBUG(5, ("called: meta_command_handler; arg0=%s args='%s'", CMD_ARGV(0), CMD_ARGS()));
+    cmd = CMD_ARGV(0);
+    if (!cmd)
+    {
+        META_WARNING("Null command name in meta_command_handler() ??");
+        return;
+    }
 
-	icmd=RegCmds->find(cmd);
-	if(!icmd) {
-		META_WARNING("Couldn't find registered plugin command: %s", cmd);
-		return;
-	}
-	if(icmd->call() != mTRUE)
-		META_CONS("[metamod: command '%s' unavailable; plugin unloaded]", cmd);
+    icmd = RegCmds->find(cmd);
+    if (!icmd)
+    {
+        META_WARNING("Couldn't find registered plugin command: %s", cmd);
+        return;
+    }
+    if (icmd->call() != mTRUE)
+        META_CONS("[metamod: command '%s' unavailable; plugin unloaded]", cmd);
 }
 
 
@@ -122,40 +125,44 @@ void DLLHIDDEN meta_command_handler(void) {
 // The string handed to the engine is just a strdup() of the plugin's
 // string.  The function pointer handed to the engine is actually a pointer
 // to a generic command-handler function (see above).
-void DLLHIDDEN meta_AddServerCommand(char *cmd_name, void (*function) (void)) {
-	MPlugin *iplug=NULL; 
-	MRegCmd *icmd=NULL;
+void DLLHIDDEN meta_AddServerCommand(char* cmd_name, void (*function)(void))
+{
+    MPlugin* iplug = NULL;
+    MRegCmd* icmd  = NULL;
 
-	META_DEBUG(4, ("called: meta_AddServerCommand; cmd_name=%s, function=%d", cmd_name, function));
+    META_DEBUG(4, ("called: meta_AddServerCommand; cmd_name=%s, function=%d", cmd_name, function));
 
-	// try to find which plugin is registering this command
-	if(!(iplug=Plugins->find_memloc((void *)function))) {
-		// if this isn't supported on this OS, don't log an error
-		if(meta_errno != ME_OSNOTSUP)
-			META_WARNING("Failed to find memloc for regcmd '%s'", cmd_name);
-	}
+    // try to find which plugin is registering this command
+    if (!(iplug = Plugins->find_memloc((void*)function)))
+    {
+        // if this isn't supported on this OS, don't log an error
+        if (meta_errno != ME_OSNOTSUP)
+            META_WARNING("Failed to find memloc for regcmd '%s'", cmd_name);
+    }
 
-	// See if this command was previously registered, ie a "reloaded" plugin.
-	icmd=RegCmds->find(cmd_name);
-	if(!icmd) {
-		// If not found, add.
-		icmd=RegCmds->add(cmd_name);
-		if(!icmd) {
-			// error details logged in add()
-			return;
-		}
-		// Only register if not previously registered..
-		REG_SVR_COMMAND(icmd->name, meta_command_handler);
-	}
+    // See if this command was previously registered, ie a "reloaded" plugin.
+    icmd = RegCmds->find(cmd_name);
+    if (!icmd)
+    {
+        // If not found, add.
+        icmd = RegCmds->add(cmd_name);
+        if (!icmd)
+        {
+            // error details logged in add()
+            return;
+        }
+        // Only register if not previously registered..
+        REG_SVR_COMMAND(icmd->name, meta_command_handler);
+    }
 
-	icmd->pfnCmd=function;
-	icmd->status=RG_VALID;
-	// Store which plugin this is for, if we know.  We can use '0' for
-	// unknown plugin, since plugin index starts at 1.
-	if(iplug)
-		icmd->plugid = iplug->index;
-	else
-		icmd->plugid = 0;
+    icmd->pfnCmd = function;
+    icmd->status = RG_VALID;
+    // Store which plugin this is for, if we know.  We can use '0' for
+    // unknown plugin, since plugin index starts at 1.
+    if (iplug)
+        icmd->plugid = iplug->index;
+    else
+        icmd->plugid = 0;
 }
 
 
@@ -171,58 +178,63 @@ void DLLHIDDEN meta_AddServerCommand(char *cmd_name, void (*function) (void)) {
 // values via the engine functions, this will work fine.  If the plugin
 // code tries to _directly_ read/set the fields of its own cvar structures,
 // it will fail to work properly.
-void DLLHIDDEN meta_CVarRegister(cvar_t *pCvar) {
-	MPlugin *iplug=NULL;
-	MRegCvar *icvar=NULL;
+void DLLHIDDEN meta_CVarRegister(cvar_t* pCvar)
+{
+    MPlugin*  iplug = NULL;
+    MRegCvar* icvar = NULL;
 
-	META_DEBUG(4, ("called: meta_CVarRegister; name=%s", pCvar->name));
+    META_DEBUG(4, ("called: meta_CVarRegister; name=%s", pCvar->name));
 
-	// try to find which plugin is registering this cvar
-	if(!(iplug=Plugins->find_memloc((void *)pCvar))) {
-		// if this isn't supported on this OS, don't log an error
-		if(meta_errno != ME_OSNOTSUP)
-			// Note: if cvar_t was malloc'd by the plugin, we can't
-			// determine the calling plugin.  Thus, this becomes a Debug
-			// rather than Error message.
-			META_DEBUG(1, ("Failed to find memloc for regcvar '%s'", 
-						pCvar->name));
-	}
+    // try to find which plugin is registering this cvar
+    if (!(iplug = Plugins->find_memloc((void*)pCvar)))
+    {
+        // if this isn't supported on this OS, don't log an error
+        if (meta_errno != ME_OSNOTSUP)
+            // Note: if cvar_t was malloc'd by the plugin, we can't
+            // determine the calling plugin.  Thus, this becomes a Debug
+            // rather than Error message.
+            META_DEBUG(1, ("Failed to find memloc for regcvar '%s'", pCvar->name));
+    }
 
-	// See if this cvar was previously registered, ie a "reloaded" plugin.
-	icvar=RegCvars->find(pCvar->name);
-	if(!icvar) {
-		// If not found, add.
-		icvar=RegCvars->add(pCvar->name);
-		if(!icvar) {
-			// error details logged in add()
-			return;
-		}
-		// Reset to given value
-		icvar->set(pCvar);
-		CVAR_REGISTER(icvar->data);
-	}
-	// Note: if not a new cvar, then we don't set the values, and just keep
-	// the pre-existing value.
+    // See if this cvar was previously registered, ie a "reloaded" plugin.
+    icvar = RegCvars->find(pCvar->name);
+    if (!icvar)
+    {
+        // If not found, add.
+        icvar = RegCvars->add(pCvar->name);
+        if (!icvar)
+        {
+            // error details logged in add()
+            return;
+        }
+        // Reset to given value
+        icvar->set(pCvar);
+        CVAR_REGISTER(icvar->data);
+    }
+    // Note: if not a new cvar, then we don't set the values, and just keep
+    // the pre-existing value.
 
-	icvar->status=RG_VALID;
-	// Store which plugin this is for, if we know.  Use '0' for unknown
-	// plugin, as plugin index starts at 1.
-	if(iplug)
-		icvar->plugid = iplug->index;
-	else
-		icvar->plugid = 0;
+    icvar->status = RG_VALID;
+    // Store which plugin this is for, if we know.  Use '0' for unknown
+    // plugin, as plugin index starts at 1.
+    if (iplug)
+        icvar->plugid = iplug->index;
+    else
+        icvar->plugid = 0;
 }
 
 
-// Replacement for engine routine RegUserMsg; called by plugins. 
-int DLLHIDDEN meta_RegUserMsg(const char *pszName, int iSize) {
-	return(REG_USER_MSG(strdup(pszName), iSize));
+// Replacement for engine routine RegUserMsg; called by plugins.
+int DLLHIDDEN meta_RegUserMsg(const char* pszName, int iSize)
+{
+    return (REG_USER_MSG(strdup(pszName), iSize));
 }
 
 
 // Intercept and record queries
-void DLLHIDDEN meta_QueryClientCvarValue(const edict_t *player, const char *cvarName) {
-	g_Players.set_player_cvar_query(player, cvarName);
-	
-	(*g_engfuncs.pfnQueryClientCvarValue)(player, cvarName);
+void DLLHIDDEN meta_QueryClientCvarValue(const edict_t* player, const char* cvarName)
+{
+    g_Players.set_player_cvar_query(player, cvarName);
+
+    (*g_engfuncs.pfnQueryClientCvarValue)(player, cvarName);
 }

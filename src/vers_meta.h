@@ -39,22 +39,22 @@
 #define VERS_META_H
 
 #ifndef OPT_TYPE
-	#define OPT_TYPE	"default"
+#    define OPT_TYPE "default"
 #endif /* not OPT_TYPE */
 
 
-#define VDATE 			"2018/02/11"
-#define VPATCH_COPYRIGHT_YEAR   "2018"
-#define VMETA_VERSION		"1.21"
+#define VDATE                 "2018/02/11"
+#define VPATCH_COPYRIGHT_YEAR "2018"
+#define VMETA_VERSION         "1.21"
 
-#define VPATCH_NAME		"Metamod-P (mm-p)"
-#define VPATCH_IVERSION		38
-#define VPATCH_VERSION		"38"
-#define VPATCH_AUTHOR		"Jussi Kivilinna"
-#define VPATCH_WEBSITE		"http://metamod-p.sourceforge.net/"
+#define VPATCH_NAME     "Metamod-P (mm-p)"
+#define VPATCH_IVERSION 38
+#define VPATCH_VERSION  "38"
+#define VPATCH_AUTHOR   "Jussi Kivilinna"
+#define VPATCH_WEBSITE  "http://metamod-p.sourceforge.net/"
 
-#define VVERSION		VMETA_VERSION "p" VPATCH_VERSION
-#define RC_VERS_DWORD		1,21,0,VPATCH_IVERSION	// Version Windows DLL Resources in res_meta.rc
+#define VVERSION      VMETA_VERSION "p" VPATCH_VERSION
+#define RC_VERS_DWORD 1, 21, 0, VPATCH_IVERSION // Version Windows DLL Resources in res_meta.rc
 
 
 

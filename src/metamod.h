@@ -38,29 +38,29 @@
 #define METAMOD_H
 
 #include "comp_dep.h"
-#include "meta_api.h"			// META_RES, etc
-#include "mlist.h"				// MPluginList, etc
-#include "mreg.h"				// MRegCmdList, etc
-#include "conf_meta.h"			// MConfig
-#include "osdep.h"				// NAME_MAX, etc
-#include "types_meta.h"			// mBOOL
-#include "mplayer.h"                    // MPlayerList
-#include "meta_eiface.h"        // HL_enginefuncs_t, meta_enginefuncs_t
-#include "engine_t.h"           // engine_t, Engine
+#include "meta_api.h"    // META_RES, etc
+#include "mlist.h"       // MPluginList, etc
+#include "mreg.h"        // MRegCmdList, etc
+#include "conf_meta.h"   // MConfig
+#include "osdep.h"       // NAME_MAX, etc
+#include "types_meta.h"  // mBOOL
+#include "mplayer.h"     // MPlayerList
+#include "meta_eiface.h" // HL_enginefuncs_t, meta_enginefuncs_t
+#include "engine_t.h"    // engine_t, Engine
 
 // file that lists plugins to load at startup
-#define PLUGINS_INI			"addons/metamod/plugins.ini"
-#define OLD_PLUGINS_INI		"metamod.ini"
+#define PLUGINS_INI     "addons/metamod/plugins.ini"
+#define OLD_PLUGINS_INI "metamod.ini"
 
 // file that contains commands to metamod plugins at startup
-#define EXEC_CFG			"addons/metamod/exec.cfg"
-#define OLD_EXEC_CFG		"metaexec.cfg"
+#define EXEC_CFG     "addons/metamod/exec.cfg"
+#define OLD_EXEC_CFG "metaexec.cfg"
 
 // previously, file that contained path for an override-gamedll
-#define OLD_GAMEDLL_TXT		"metagame.ini"
+#define OLD_GAMEDLL_TXT "metagame.ini"
 
 // generic config file
-#define CONFIG_INI			"addons/metamod/config.ini"
+#define CONFIG_INI "addons/metamod/config.ini"
 
 // metamod module handle
 extern DLHANDLE metamod_handle DLLHIDDEN;
@@ -69,50 +69,51 @@ extern DLHANDLE metamod_handle DLLHIDDEN;
 extern cvar_t meta_version DLLHIDDEN;
 
 // Info about the game dll/mod.
-typedef struct gamedll_s {
-	char name[NAME_MAX];		// ie "cstrike" (from gamedir)
-	const char *desc;				// ie "Counter-Strike"
-	char gamedir[PATH_MAX];		// ie "/home/willday/half-life/cstrike"
-	char pathname[PATH_MAX];	// ie "/home/willday/half-life/cstrike/dlls/cs_i386.so"
-	char const *file;			// ie "cs_i386.so"
-	char real_pathname[PATH_MAX];	// in case pathname overridden by bot, etc
-	DLHANDLE handle;
-	void *imagebase;
-	gamedll_funcs_t funcs;		// dllapi_table, newapi_table
+typedef struct gamedll_s
+{
+    char            name[NAME_MAX];          // ie "cstrike" (from gamedir)
+    const char*     desc;                    // ie "Counter-Strike"
+    char            gamedir[PATH_MAX];       // ie "/home/willday/half-life/cstrike"
+    char            pathname[PATH_MAX];      // ie "/home/willday/half-life/cstrike/dlls/cs_i386.so"
+    char const*     file;                    // ie "cs_i386.so"
+    char            real_pathname[PATH_MAX]; // in case pathname overridden by bot, etc
+    DLHANDLE        handle;
+    void*           imagebase;
+    gamedll_funcs_t funcs; // dllapi_table, newapi_table
 } gamedll_t;
 extern gamedll_t GameDLL DLLHIDDEN;
 
 // SDK variables for storing engine funcs and globals.
 extern HL_enginefuncs_t g_engfuncs DLLHIDDEN;
-extern globalvars_t *gpGlobals DLLHIDDEN;
+extern globalvars_t* gpGlobals     DLLHIDDEN;
 
 // Our modified version of the engine funcs, to give to plugins.
 extern meta_enginefuncs_t g_plugin_engfuncs DLLHIDDEN;
 
 // Config structure.
-extern MConfig *Config DLLHIDDEN;
+extern MConfig* Config DLLHIDDEN;
 
 // List of plugins loaded/opened/running.
-extern MPluginList *Plugins DLLHIDDEN;
+extern MPluginList* Plugins DLLHIDDEN;
 
 // List of command functions registered by plugins.
-extern MRegCmdList *RegCmds DLLHIDDEN;
+extern MRegCmdList* RegCmds DLLHIDDEN;
 
 // List of cvar structures registered by plugins.
-extern MRegCvarList *RegCvars DLLHIDDEN;
+extern MRegCvarList* RegCvars DLLHIDDEN;
 
 // List of user messages registered by gamedll.
-extern MRegMsgList *RegMsgs DLLHIDDEN;
+extern MRegMsgList* RegMsgs DLLHIDDEN;
 
 // Data provided to plugins.
 // Separate copies to prevent plugins from modifying "readable" parts.
 // See meta_api.h for meta_globals_t structure.
-extern meta_globals_t PublicMetaGlobals DLLHIDDEN;
+extern meta_globals_t PublicMetaGlobals  DLLHIDDEN;
 extern meta_globals_t PrivateMetaGlobals DLLHIDDEN;
 
 // hook function tables
-extern DLL_FUNCTIONS *g_pHookedDllFunctions DLLHIDDEN;
-extern NEW_DLL_FUNCTIONS *g_pHookedNewDllFunctions DLLHIDDEN;
+extern DLL_FUNCTIONS* g_pHookedDllFunctions        DLLHIDDEN;
+extern NEW_DLL_FUNCTIONS* g_pHookedNewDllFunctions DLLHIDDEN;
 
 extern int metamod_not_loaded DLLHIDDEN;
 
@@ -186,13 +187,15 @@ mBOOL DLLINTERNAL meta_load_gamedll(void);
 
 // return (void)
 #define RETURN_API_void() \
-	return;
+    return;
 
 // ===== macros for type-returning functions ==================================
 
 // return a value
-#define RETURN_API(ret_t) \
-	{return(GET_RET_CLASS(ret_val, ret_t));}
+#define RETURN_API(ret_t)                       \
+    {                                           \
+        return (GET_RET_CLASS(ret_val, ret_t)); \
+    }
 
 // ===== end macros ===========================================================
 
@@ -202,42 +205,49 @@ mBOOL DLLINTERNAL meta_load_gamedll(void);
 // Api-hook performance monitoring
 // ============================================================================
 
-extern long double total_tsc DLLHIDDEN;
-extern unsigned long long count_tsc DLLHIDDEN;
+extern long double total_tsc         DLLHIDDEN;
+extern unsigned long long count_tsc  DLLHIDDEN;
 extern unsigned long long active_tsc DLLHIDDEN;
-extern unsigned long long min_tsc DLLHIDDEN;
+extern unsigned long long min_tsc    DLLHIDDEN;
 
-inline unsigned long long DLLINTERNAL GET_TSC(void) {
-	union { struct { unsigned int eax, edx;	} split; unsigned long long full; } tsc;
-#ifdef __GNUC__
-	__asm__ __volatile__("rdtsc":"=a"(tsc.split.eax), "=d"(tsc.split.edx));	
-#else
-	__asm
-	{
+inline unsigned long long DLLINTERNAL GET_TSC(void)
+{
+    union
+    {
+        struct
+        { unsigned int eax, edx; } split;
+        unsigned long long full;
+    } tsc;
+#    ifdef __GNUC__
+    __asm__ __volatile__("rdtsc" : "=a"(tsc.split.eax), "=d"(tsc.split.edx));
+#    else
+    __asm
+    {
 		rdtsc
 		mov tsc.split.eax, eax
 		mov tsc.split.edx, edx
-	}
-#endif
-	return(tsc.full);
+    }
+#    endif
+    return (tsc.full);
 }
 
-#define API_START_TSC_TRACKING() \
-	active_tsc = GET_TSC()
+#    define API_START_TSC_TRACKING() \
+        active_tsc = GET_TSC()
 
-#define API_PAUSE_TSC_TRACKING() \
-	total_tsc += GET_TSC() - active_tsc
+#    define API_PAUSE_TSC_TRACKING() \
+        total_tsc += GET_TSC() - active_tsc
 
-#define API_UNPAUSE_TSC_TRACKING() \
-	active_tsc = GET_TSC()
+#    define API_UNPAUSE_TSC_TRACKING() \
+        active_tsc = GET_TSC()
 
-#define API_END_TSC_TRACKING() { \
-		unsigned long long run_tsc = GET_TSC() - active_tsc; \
-		total_tsc += run_tsc; \
-		count_tsc++; \
-		if(min_tsc == 0 || run_tsc < min_tsc) \
-			min_tsc = run_tsc; \
-	}
+#    define API_END_TSC_TRACKING()                               \
+        {                                                        \
+            unsigned long long run_tsc = GET_TSC() - active_tsc; \
+            total_tsc += run_tsc;                                \
+            count_tsc++;                                         \
+            if (min_tsc == 0 || run_tsc < min_tsc)               \
+                min_tsc = run_tsc;                               \
+        }
 
 // ===== end ==================================================================
 
@@ -245,10 +255,10 @@ inline unsigned long long DLLINTERNAL GET_TSC(void) {
 
 // ===== performance monitor disabled =========================================
 
-#define API_START_TSC_TRACKING()
-#define API_PAUSE_TSC_TRACKING()
-#define API_UNPAUSE_TSC_TRACKING()
-#define API_END_TSC_TRACKING()
+#    define API_START_TSC_TRACKING()
+#    define API_PAUSE_TSC_TRACKING()
+#    define API_UNPAUSE_TSC_TRACKING()
+#    define API_END_TSC_TRACKING()
 
 // ===== end ==================================================================
 

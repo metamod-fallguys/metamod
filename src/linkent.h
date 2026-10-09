@@ -37,17 +37,17 @@
 #ifndef LINK_ENT_H
 #define LINK_ENT_H
 
-#include <extdll.h>		// always
+#include <extdll.h> // always
 
-#include "osdep.h"		// DLLEXPORT, etc
-#include "metamod.h"	// GameDLL, etc
-#include "mlist.h"		// MPluginList::find_match, etc
-#include "mplugin.h"	// MPlugin::info, etc
-#include "log_meta.h"	// META_DEBUG, etc
+#include "osdep.h"    // DLLEXPORT, etc
+#include "metamod.h"  // GameDLL, etc
+#include "mlist.h"    // MPluginList::find_match, etc
+#include "mplugin.h"  // MPlugin::info, etc
+#include "log_meta.h" // META_DEBUG, etc
 
 
 //Initializes replacement code
-int DLLINTERNAL init_linkent_replacement(DLHANDLE moduleMetamod, DLHANDLE moduleGame);
+int DLLINTERNAL  init_linkent_replacement(DLHANDLE moduleMetamod, DLHANDLE moduleGame);
 void DLLINTERNAL uninit_linkent_replacement();
 
 // Comments from SDK dlls/util.h:
@@ -57,7 +57,7 @@ void DLLINTERNAL uninit_linkent_replacement();
 
 // Adapted from LINK_ENTITY_TO_FUNC in adminmod linkfunc.cpp.
 
-typedef void (*ENTITY_FN) (entvars_t *);
+typedef void (*ENTITY_FN)(entvars_t*);
 
 
 // For now, we have to explicitly export functions for plugin entities,
@@ -73,37 +73,42 @@ typedef void (*ENTITY_FN) (entvars_t *);
 //  - (plugin loaded) if func not found, dlsym
 //  - (plugin loaded) if func still not found, set missing, return
 //  - (plugin loaded, func found) call func
-#define LINK_ENTITY_TO_PLUGIN(entityName, pluginName) \
-	C_DLLEXPORT void entityName(entvars_t *pev); \
-	void entityName(entvars_t *pev) { \
-		static ENTITY_FN pfnEntity = NULL; \
-		static int missing=0; \
-		const char *entStr; \
-		MPlugin *findp; \
-		entStr = STRINGIZE(entityName, 0); \
-		if(missing) \
-			return; \
-		if(!pfnEntity) { \
-			if(!(findp=Plugins->find_match(pluginName))) { \
-				META_WARNING("Couldn't find loaded plugin '%s' for plugin entity '%s'", pluginName, entStr); \
-				missing=1; \
-				return; \
-			} \
-			if(findp->info && findp->info->loadable != PT_STARTUP) { \
-				META_WARNING("Can't link entity '%s' for plugin '%s'; loadable != startup: %s", entStr, pluginName, findp->str_loadable()); \
-				missing=1; \
-				return; \
-			} \
-			META_DEBUG(9, ("Looking up plugin entity '%s'", entStr)); \
-			pfnEntity = (ENTITY_FN) DLSYM(findp->handle, entStr); \
-		} \
-		if(!pfnEntity) { \
-			META_WARNING("Couldn't find plugin entity '%s' in plugin DLL '%s'", entStr, findp->file); \
-			missing=1; \
-			return; \
-		} \
-		META_DEBUG(8, ("Linking plugin entity '%s'", entStr)); \
-		(*pfnEntity)(pev); \
-	}
+#define LINK_ENTITY_TO_PLUGIN(entityName, pluginName)                                                                                       \
+    C_DLLEXPORT void entityName(entvars_t* pev);                                                                                            \
+    void             entityName(entvars_t* pev)                                                                                             \
+    {                                                                                                                                       \
+        static ENTITY_FN pfnEntity = NULL;                                                                                                  \
+        static int       missing   = 0;                                                                                                     \
+        const char*      entStr;                                                                                                            \
+        MPlugin*         findp;                                                                                                             \
+        entStr = STRINGIZE(entityName, 0);                                                                                                   \
+        if (missing)                                                                                                                        \
+            return;                                                                                                                         \
+        if (!pfnEntity)                                                                                                                     \
+        {                                                                                                                                   \
+            if (!(findp = Plugins->find_match(pluginName)))                                                                                 \
+            {                                                                                                                               \
+                META_WARNING("Couldn't find loaded plugin '%s' for plugin entity '%s'", pluginName, entStr);                                \
+                missing = 1;                                                                                                                \
+                return;                                                                                                                     \
+            }                                                                                                                               \
+            if (findp->info && findp->info->loadable != PT_STARTUP)                                                                         \
+            {                                                                                                                               \
+                META_WARNING("Can't link entity '%s' for plugin '%s'; loadable != startup: %s", entStr, pluginName, findp->str_loadable()); \
+                missing = 1;                                                                                                                \
+                return;                                                                                                                     \
+            }                                                                                                                               \
+            META_DEBUG(9, ("Looking up plugin entity '%s'", entStr));                                                                       \
+            pfnEntity = (ENTITY_FN)DLSYM(findp->handle, entStr);                                                                            \
+        }                                                                                                                                   \
+        if (!pfnEntity)                                                                                                                     \
+        {                                                                                                                                   \
+            META_WARNING("Couldn't find plugin entity '%s' in plugin DLL '%s'", entStr, findp->file);                                       \
+            missing = 1;                                                                                                                    \
+            return;                                                                                                                         \
+        }                                                                                                                                   \
+        META_DEBUG(8, ("Linking plugin entity '%s'", entStr));                                                                              \
+        (*pfnEntity)(pev);                                                                                                                  \
+    }
 
 #endif /* LINK_ENT_H */

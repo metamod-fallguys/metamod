@@ -32,8 +32,8 @@
 #ifndef MM_PEXTENSIONS_H
 #define MM_PEXTENSIONS_H
 
-#include "plinfo.h"		// plid_t
-#include "meta_api.h"		// PLUG_LOADTIME
+#include "plinfo.h"   // plid_t
+#include "meta_api.h" // PLUG_LOADTIME
 /*
 
 	How to use:
@@ -96,21 +96,22 @@
 #define META_PEXT_VERSION 2
 
 // Meta PExtension Function table type.
-typedef struct pextension_funcs_s {
-	int (*pfnLoadMetaPluginByName)(plid_t plid, const char *cmdline, PLUG_LOADTIME now, void **plugin_handle);
-	int (*pfnUnloadMetaPluginByName)(plid_t plid, const char *cmdline, PLUG_LOADTIME now, PL_UNLOAD_REASON reason);
-	int (*pfnUnloadMetaPluginByHandle)(plid_t plid, void *plugin_handle, PLUG_LOADTIME now, PL_UNLOAD_REASON reason);
+typedef struct pextension_funcs_s
+{
+    int (*pfnLoadMetaPluginByName)(plid_t plid, const char* cmdline, PLUG_LOADTIME now, void** plugin_handle);
+    int (*pfnUnloadMetaPluginByName)(plid_t plid, const char* cmdline, PLUG_LOADTIME now, PL_UNLOAD_REASON reason);
+    int (*pfnUnloadMetaPluginByHandle)(plid_t plid, void* plugin_handle, PLUG_LOADTIME now, PL_UNLOAD_REASON reason);
 } pextension_funcs_t;
 
 // Convenience macros for MetaPExtension functions.
-#define PEXT_LOAD_PLUGIN_BY_NAME	(*gpMetaPExtFuncs->pfnLoadMetaPluginByName)
-#define PEXT_UNLOAD_PLUGIN_BY_NAME	(*gpMetaPExtFuncs->pfnUnloadMetaPluginByName)
-#define PEXT_UNLOAD_PLUGIN_BY_HANDLE	(*gpMetaPExtFuncs->pfnUnloadMetaPluginByHandle)
+#define PEXT_LOAD_PLUGIN_BY_NAME     (*gpMetaPExtFuncs->pfnLoadMetaPluginByName)
+#define PEXT_UNLOAD_PLUGIN_BY_NAME   (*gpMetaPExtFuncs->pfnUnloadMetaPluginByName)
+#define PEXT_UNLOAD_PLUGIN_BY_HANDLE (*gpMetaPExtFuncs->pfnUnloadMetaPluginByHandle)
 
 // Give plugin extension function table.
-C_DLLEXPORT int Meta_PExtGiveFnptrs(int interfaceVersion, 
-		pextension_funcs_t *pMetaPExtFuncs);
-typedef int (*META_GIVE_PEXT_FUNCTIONS_FN) (int interfaceVersion, 
-		pextension_funcs_t *pMetaPExtFuncs);
+C_DLLEXPORT int Meta_PExtGiveFnptrs(int                 interfaceVersion,
+                                    pextension_funcs_t* pMetaPExtFuncs);
+typedef int (*META_GIVE_PEXT_FUNCTIONS_FN)(int                 interfaceVersion,
+                                           pextension_funcs_t* pMetaPExtFuncs);
 
 #endif /* MM_PEXTENSIONS_H */

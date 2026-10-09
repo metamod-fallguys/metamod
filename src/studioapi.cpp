@@ -34,5 +34,5 @@
  *
  */
 
-//Jussi Kivilinna: This forwarder function to gamedll is not needed anymore, dynamic 
+//Jussi Kivilinna: This forwarder function to gamedll is not needed anymore, dynamic
 //                 linkent code handles this too!

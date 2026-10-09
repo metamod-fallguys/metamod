@@ -34,7 +34,7 @@
  *
  */
 
-#include "info_name.h"		// for VNAME, VVERSION, etc
+#include "info_name.h" // for VNAME, VVERSION, etc
 #include "vdate.h"
 
 
@@ -45,14 +45,14 @@
 // This is in a separate file from vers_*, so it can be generically used by
 // multiple projects.
 
-char const *COMPILE_TIME=__DATE__ ", " __TIME__;
+char const* COMPILE_TIME = __DATE__ ", " __TIME__;
 
 #ifndef COMPILE_TZ
-	#define COMPILE_TZ "EET"
+#    define COMPILE_TZ "EET"
 #endif
 
-char const *COMPILE_TZONE = COMPILE_TZ;
+char const* COMPILE_TZONE = COMPILE_TZ;
 
 // Include a string for /usr/bin/ident.
 
-char const *vstring="\n$Pg: " VNAME " -- " VVERSION " | " __DATE__ " - " __TIME__ " $\n";
+char const* vstring = "\n$Pg: " VNAME " -- " VVERSION " | " __DATE__ " - " __TIME__ " $\n";
