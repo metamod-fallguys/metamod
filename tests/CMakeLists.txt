@@ -47,12 +47,15 @@ if(MSVC)
     set(MMFG_METAMOD_TESTS_SANITIZE OFF)
 endif()
 
-# mmetest_add(<name> [LINUX_ONLY] SOURCES <sources...>)
+# mmetest_add(<name> [LINUX_ONLY] [NO_UBSAN] SOURCES <sources...>)
 #
 # LINUX_ONLY keeps a test out of the Windows suite when the code under test is
 # POSIX-only (directory iteration, ELF symbol resolution, ...).
+#
+# NO_UBSAN keeps the undefined behaviour sanitizer off for a test whose code
+# under test performs intentional unaligned loads (the x86 jump forwarders).
 function(mmetest_add name)
-    cmake_parse_arguments(ARG "LINUX_ONLY" "" "SOURCES" ${ARGN})
+    cmake_parse_arguments(ARG "LINUX_ONLY;NO_UBSAN" "" "SOURCES" ${ARGN})
     if(ARG_LINUX_ONLY AND NOT UNIX)
         return()
     endif()
@@ -75,9 +78,14 @@ function(mmetest_add name)
             # The lifetime and bounds defects these tests guard against are only
             # observable through the sanitizers. GCC needs the explicit
             # use-after-scope instrumentation for the stack lifetime checks.
+            if(ARG_NO_UBSAN)
+                set(MMFG_TEST_SANITIZE_FLAGS -fsanitize=address)
+            else()
+                set(MMFG_TEST_SANITIZE_FLAGS -fsanitize=address,undefined)
+            endif()
             target_compile_options(${name} PRIVATE
-                -fsanitize=address,undefined -fsanitize-address-use-after-scope -fno-omit-frame-pointer)
-            target_link_options(${name} PRIVATE -fsanitize=address,undefined)
+                ${MMFG_TEST_SANITIZE_FLAGS} -fsanitize-address-use-after-scope -fno-omit-frame-pointer)
+            target_link_options(${name} PRIVATE ${MMFG_TEST_SANITIZE_FLAGS})
         endif()
         target_link_libraries(${name} PRIVATE dl)
     endif()
@@ -125,4 +133,14 @@ if(UNIX)
             "${MMFG_TEST_COMPONENT_ROOT}/src/osdep_detect_gamedll_linux.cpp"
             "${MMFG_TEST_COMPONENT_ROOT}/src/conf_meta.cpp"
             ${MMFG_TEST_CORE_SOURCES})
+
+    # The test includes osdep_linkent_linux.cpp itself: the code under test has
+    # internal linkage.
+    mmetest_add(mmfg_test_osdep_linkent_linux
+        LINUX_ONLY
+        NO_UBSAN
+        SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/test_osdep_linkent_linux.cpp"
+            ${MMFG_TEST_CORE_SOURCES})
+    target_link_libraries(mmfg_test_osdep_linkent_linux PRIVATE pthread)
 endif()
