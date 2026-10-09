@@ -49,29 +49,6 @@ static int make_dir(const char* path)
     return mkdir(path, 0755) == 0 || errno == EEXIST;
 }
 
-// The fork's is_gamedll() keeps upstream's bound check with a stricter margin
-// ("&shdr[shnum] > file_end - 1"), so a shared object whose section header table
-// ends exactly at EOF is rejected as an invalid ELF. Real game DLLs carry
-// trailing padding; give the fixture copy the same.
-#define FAKE_GAMEDLL_PADDING 64
-
-static int append_padding(const char* path)
-{
-    char  padding[FAKE_GAMEDLL_PADDING];
-    FILE* fp = fopen(path, "ab");
-
-    if (!fp)
-        return 0;
-    memset(padding, 0, sizeof(padding));
-    if (fwrite(padding, 1, sizeof(padding), fp) != sizeof(padding))
-    {
-        fclose(fp);
-        return 0;
-    }
-    fclose(fp);
-    return 1;
-}
-
 static int copy_file(const char* from, const char* to)
 {
     char   buf[4096];
@@ -174,9 +151,7 @@ static int install_gamedll(const char* gamedir, const char* name)
     if (!make_dir(dlls))
         return 0;
     snprintf(dest, sizeof(dest), "%s/%s", dlls, name);
-    if (!copy_file(fake_gamedll_path(), dest))
-        return 0;
-    return append_padding(dest);
+    return copy_file(fake_gamedll_path(), dest);
 }
 
 static const char* autodetect(const char* gamedir, const char* knownfn)

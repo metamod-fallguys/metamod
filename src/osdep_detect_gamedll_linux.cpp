@@ -227,9 +227,12 @@ mBOOL DLLINTERNAL is_gamedll(const char* filename)
 #endif
 
     //Get symtab and strtab info
-    shdr = (ElfW(Shdr)*)((char*)ehdr + ehdr->e_shoff);
-    if (invalid_elf_ptr(shdr[ehdr->e_shnum]))
+    // The section table may end exactly at EOF. Check the whole range before
+    // forming a pointer, without relaxing checks for actual element accesses.
+    if (ehdr->e_shoff > filesize ||
+        ehdr->e_shnum > (filesize - ehdr->e_shoff) / sizeof(ElfW(Shdr)))
         elf_error_exit();
+    shdr = (ElfW(Shdr)*)((char*)ehdr + ehdr->e_shoff);
 
     for (i = 0; i < ehdr->e_shnum; i++)
     {
