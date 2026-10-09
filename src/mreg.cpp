@@ -518,28 +518,57 @@ MRegMsgList::MRegMsgList(void) : size(MAX_REG_MSGS), endlist(0)
     endlist = 0;
 }
 
-// Add the given user msg the list and return the instance.
+MRegMsgList::~MRegMsgList()
+{
+    for (int i = 0; i < endlist; i++)
+        if (mlist[i].name && mlist[i].name[0])
+            free(const_cast<char*>(mlist[i].name));
+}
+
+// Record a registration, completing an empty name without replacing a known one.
 // meta_errno values:
 //  - ME_MAXREACHED		reached max number of msgs allowed
+//  - ME_NOMEM           couldn't copy the message name
 MRegMsg* DLLINTERNAL MRegMsgList::add(const char* addname, int addmsgid, int addsize)
 {
-    MRegMsg* imsg;
+    const char* name = addname ? addname : "";
+    MRegMsg*    imsg = find(addmsgid);
+    if (imsg)
+    {
+        if (!strcmp(name, imsg->name ? imsg->name : ""))
+        {
+            META_DEBUG(3, ("user message registered again: name=%s, msgid=%d", name, addmsgid));
+            return imsg;
+        }
+        if (imsg->name && imsg->name[0])
+        {
+            META_WARNING("user message id reused: msgid=%d, oldname=%s, newname=%s", addmsgid, imsg->name, name);
+            return imsg;
+        }
+        char* copy = strdup(name);
+        if (!copy) RETURN_ERRNO(NULL, ME_NOMEM);
+        // Empty names use static storage: previously returned pointers stay valid.
+        imsg->name = copy;
+        META_DEBUG(3, ("user message name updated: msgid=%d, name=%s", addmsgid, name));
+        return imsg;
+    }
 
     if (endlist == size)
     {
         // all slots used
         META_ERROR("Couldn't add registered msg '%s' to list; reached max msgs (%d)",
-                   addname, size);
+                   name, size);
         RETURN_ERRNO(NULL, ME_MAXREACHED);
     }
 
+    const char* copy = name[0] ? strdup(name) : "";
+    if (!copy) RETURN_ERRNO(NULL, ME_NOMEM);
     imsg = &mlist[endlist];
     endlist++;
 
     // Copy msg data into empty slot.
-    // Note: 'addname' assumed to be a constant string allocated in the
-    // gamedll.
-    imsg->name  = addname;
+    // Nonempty names remain valid until this list is destroyed.
+    imsg->name  = copy;
     imsg->msgid = addmsgid;
     imsg->size  = addsize;
 
@@ -554,7 +583,7 @@ MRegMsg* DLLINTERNAL MRegMsgList::find(const char* findname)
     int i;
     for (i = 0; i < endlist; i++)
     {
-        if (!mm_strcmp(mlist[i].name, findname))
+        if (findname && mlist[i].name && !mm_strcmp(mlist[i].name, findname))
             return (&mlist[i]);
     }
     RETURN_ERRNO(NULL, ME_NOTFOUND);
@@ -586,7 +615,7 @@ void DLLINTERNAL MRegMsgList::show(void)
     for (i = 0; i < endlist; i++)
     {
         imsg = &mlist[i];
-        STRNCPY(bname, imsg->name, sizeof(bname));
+        STRNCPY(bname, imsg->name ? imsg->name : "(null)", sizeof(bname));
         META_CONS("   %-*s   %3d    %3d",
                   sizeof(bname) - 1, bname,
                   imsg->msgid,

@@ -269,8 +269,7 @@ static const char* mutil_GetUserMsgName(plid_t plid, int msgid, int* size)
     {
         if (size)
             *size = umsg->size;
-        // 'name' is assumed to be a constant string, allocated in the
-        // gamedll.
+        // The registry keeps this string valid until it is destroyed.
         return (umsg->name);
     }
     else
