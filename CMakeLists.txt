@@ -67,6 +67,7 @@ else()
     mmfg_procmap_library()
     target_link_libraries(metamod PRIVATE procmap)
 endif()
+mmfg_assign_source_groups(metamod)
 
 include(cmake/FormatValidation.cmake)
 
