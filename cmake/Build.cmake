@@ -50,6 +50,29 @@ function(mmfg_configure_target target)
     endif()
 endfunction()
 
+# Synchronize a plugin's GoldSrc_VibeSignatures gamedata at build time: the
+# manifest selects the symbols to keep, the pruned catalog is validated against
+# it and installed to addons/metamod/gamedata/<target>, where metamod merges it
+# into its catalog. MMFG_SYNC_GAMEDATA=OFF only installs an existing catalog.
+function(mmfg_add_gamedata target manifest)
+    option(MMFG_SYNC_GAMEDATA "Download and prune GoldSrc_VibeSignatures gamedata at build time (requires Python 3.8+)" ON)
+    get_filename_component(manifest "${manifest}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(gamedata_dir "${PROJECT_BINARY_DIR}/assets/addons/metamod/gamedata/${target}")
+    if(MMFG_SYNC_GAMEDATA)
+        find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter)
+        set(script "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../scripts/sync-gamedata.py")
+        add_custom_target(${target}_gamedata
+            COMMAND "${Python3_EXECUTABLE}" -B "${script}" --manifest "${manifest}"
+                --target-dir "${gamedata_dir}" --temp-root "${PROJECT_BINARY_DIR}/gamedata-sync"
+            COMMAND "${Python3_EXECUTABLE}" -B "${script}" --manifest "${manifest}"
+                --target-dir "${gamedata_dir}" --validate-only
+            COMMENT "Synchronizing ${target} gamedata"
+            VERBATIM)
+        add_dependencies(${target} ${target}_gamedata)
+    endif()
+    install(DIRECTORY "${gamedata_dir}/" DESTINATION addons/metamod/gamedata/${target} OPTIONAL)
+endfunction()
+
 # Visual Studio filters mirror each source's directory under the tree that owns
 # it: this repository, the build tree, or a dependency's <NAME>_SOURCE_PATH. The
 # longest matching root wins, because fetched dependencies can live inside the

@@ -128,6 +128,11 @@ mmetest_add(mmfg_test_client_cvar
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_client_cvar.cpp"
         ${MMFG_TEST_PLUGIN_SOURCES})
 
+mmetest_add(mmfg_test_gamedata
+    SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_gamedata.cpp"
+        "${MMFG_TEST_COMPONENT_ROOT}/src/gamedata.cpp")
+target_link_libraries(mmfg_test_gamedata PRIVATE mmfg_gamedata_headers)
+
 mmetest_add(mmfg_test_mplayer_assignment
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_mplayer_assignment.cpp"
         ${MMFG_TEST_CORE_SOURCES})

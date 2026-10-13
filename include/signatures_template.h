@@ -19,6 +19,32 @@
 #define LOCATE_FROM_SIGNATURE_FROM_FUNCTION(func, size, sig) gpMetaUtilFuncs->pfnSearchPattern(func, size, sig, sizeof(sig) - 1)
 #define LOCATE_FROM_SYMBOL(dll, sym)                         gpMetaUtilFuncs->pfnGetProcAddress(dll##Handle, sym)
 
+// Resolve name##_GameSymbol (the gamedata symbolName) in the module at
+// dll##Base through metamod's gamedata catalog (interface 5:17). A failure
+// logs the catalog status and rejects the plugin.
+#define RESOLVE_FROM_GAMEDATA(dll, name, kind, out)                                                                                                                                   \
+    do                                                                                                                                                                                \
+    {                                                                                                                                                                                 \
+        void* name##_GameSymbolAddress = NULL;                                                                                                                                        \
+        auto  name##_GameSymbolStatus  = gpMetaUtilFuncs->pfnResolveGameSymbol(dll##Base, name##_GameSymbol, kind, &name##_GameSymbolAddress);                                        \
+        if (name##_GameSymbolStatus != META_GAMESYMBOL_OK)                                                                                                                            \
+        {                                                                                                                                                                             \
+            LOG_ERROR(PLID, "Failed to resolve " #name " (\"%s\") from " #dll " dll: %s", name##_GameSymbol, gpMetaUtilFuncs->pfnGetGameSymbolStatusString(name##_GameSymbolStatus)); \
+            return FALSE;                                                                                                                                                             \
+        }                                                                                                                                                                             \
+        out = (decltype(out))name##_GameSymbolAddress;                                                                                                                                \
+    } while (0)
+
+#define FILL_FROM_GAMEDATA(dll, name)                                                  \
+    do                                                                                 \
+    {                                                                                  \
+        RESOLVE_FROM_GAMEDATA(dll, name, META_GAMESYMBOL_KIND_FUNCTION, g_pfn_##name); \
+        g_call_original_##name = g_pfn_##name;                                         \
+    } while (0)
+
+// A global resolves to the address of the variable itself.
+#define VAR_FROM_GAMEDATA(dll, name) RESOLVE_FROM_GAMEDATA(dll, name, META_GAMESYMBOL_KIND_GLOBAL, name)
+
 #ifdef _WIN32
 
 #    define ENGINE_DLL_NAME "hw.dll"

@@ -24,6 +24,7 @@ add_library(metamod SHARED
     src/dllapi.cpp
     src/engineinfo.cpp
     src/engine_api.cpp
+    src/gamedata.cpp
     src/game_autodetect.cpp
     src/game_support.cpp
     src/h_export.cpp
@@ -54,6 +55,8 @@ target_compile_definitions(metamod PRIVATE __METAMOD_BUILD__)
 target_include_directories(metamod PRIVATE src/CDetour)
 mmfg_capstone_library()
 target_link_libraries(metamod PRIVATE capstone-static Capstone::Headers)
+mmfg_gamedata_headers()
+target_link_libraries(metamod PRIVATE mmfg_gamedata_headers)
 if(WIN32)
     target_sources(metamod PRIVATE src/osdep_detect_gamedll_win32.cpp src/osdep_linkent_win32.cpp src/res_meta.rc)
     target_link_options(metamod PRIVATE "/DEF:${CMAKE_CURRENT_SOURCE_DIR}/src/metamod.def")

@@ -22,13 +22,20 @@ Libraries install to `install/x86/<Config>/addons/metamod/dlls`; Windows install
 matching PDBs. An explicit `CMAKE_INSTALL_PREFIX` or `cmake --install --prefix`
 overrides the default. Existing build trees retain their cached install prefix.
 
+Metamod loads every `index.json` under `addons/metamod/gamedata/` before plugins attach
+and exposes the merged [GoldSrc_VibeSignatures](https://github.com/hlnd2t/GoldSrc_VibeSignatures)
+catalog through `pfnResolveGameSymbol` (interface 5:17). Symbols are looked up by the CRC-64
+of the loaded module file and their `symbolName`. `scripts/sync-gamedata.py` is the shared
+build-time synchronizer used by plugins through `mmfg_add_gamedata()`.
+
 Dependency CMake variables override environment defaults. An empty path fetches a fixed
 commit; invalid explicit paths fail. External source trees are read-only inputs.
 Plugins use `METAMOD_SOURCE_PATH` and `ASEXT_SOURCE_PATH` for local clones; SDK imports
 do not build either dependency's native library. `ANGELSCRIPT_SOURCE_PATH` selects the
-custom SDK. FallGuys additionally accepts `BULLET3_SOURCE_PATH` and `CAPSTONE_SOURCE_PATH`.
-Metamod accepts `CAPSTONE_SOURCE_PATH` and Linux `PROCMAP_SOURCE_PATH`, using initialized
-internal submodules before falling back to FetchContent.
+custom SDK. FallGuys additionally accepts `BULLET3_SOURCE_PATH`.
+Metamod accepts `CAPSTONE_SOURCE_PATH`, `RAPIDJSON_SOURCE_PATH`, `CHOCOBO1HASH_SOURCE_PATH`
+and Linux `PROCMAP_SOURCE_PATH`, using initialized internal submodules before falling back
+to FetchContent.
 
 ## Formatting
 
