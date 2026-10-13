@@ -92,3 +92,18 @@ function(mmfg_angelscript_headers)
     add_library(AngelScript::Headers ALIAS mmfg_angelscript_headers)
     target_include_directories(mmfg_angelscript_headers INTERFACE "${source}/angelscript/include")
 endfunction()
+
+# Header-only dependencies of the gamedata catalog (src/gamedata.cpp), pinned to
+# the revisions MetaHookSv uses for its GameData implementation.
+function(mmfg_gamedata_headers)
+    if(TARGET mmfg_gamedata_headers)
+        return()
+    endif()
+    mmfg_source(rapidjson RAPIDJSON_SOURCE_PATH https://github.com/Tencent/rapidjson.git
+        6089180ecb704cb2b136777798fa1be303618975 "include/rapidjson/document.h" rapidjson_source)
+    mmfg_source(chocobo1hash CHOCOBO1HASH_SOURCE_PATH https://github.com/hzqst/Chocobo1Hash.git
+        f455b0e350dce4c3b2415bad5f10484842b0a605 "src/crc_64_xz.h;src/sha2_256.h" chocobo1hash_source)
+    add_library(mmfg_gamedata_headers INTERFACE)
+    target_include_directories(mmfg_gamedata_headers SYSTEM INTERFACE
+        "${rapidjson_source}/include" "${chocobo1hash_source}/src")
+endfunction()

@@ -66,7 +66,8 @@
 // Version 5:14 added Binary Analysis and InlineHook to mutils by hzqst
 // Version 5:15 added EngineStudioAPI, rotationmatrix and bonematrix to mutils by hzqst
 // Version 5:16 added GetEngineType to mutils by hzqst
-#define META_INTERFACE_VERSION "5:16"
+// Version 5:17 added ResolveGameSymbol and GetGameSymbolStatusString to mutils by hzqst
+#define META_INTERFACE_VERSION "5:17"
 
 // Flags returned by a plugin's api function.
 // NOTE: order is crucial, as greater/less comparisons are made.

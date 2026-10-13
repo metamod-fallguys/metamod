@@ -38,9 +38,10 @@
 #define MUTIL_H
 
 #include "comp_dep.h"
-#include "plinfo.h"   // plugin_info_t, etc
-#include "mhook.h"    // game_event_t, etc
-#include "sdk_util.h" // hudtextparms_t, etc
+#include "plinfo.h"     // plugin_info_t, etc
+#include "mhook.h"      // game_event_t, etc
+#include "sdk_util.h"   // hudtextparms_t, etc
+#include "gamesymbol.h" // meta_gamesymbol_kind_t, etc
 
 // max buffer size for printed messages
 #define MAX_LOGMSG_LEN 1024
@@ -144,6 +145,9 @@ typedef struct meta_util_funcs_s
     const char* (*pfnGetEngineType)();
     void* (*pfnGetCodeBase)(void* ImageBase);
     size_t (*pfnGetCodeSize)(void* ImageBase);
+    // 2026-10 Added by hzqst: GoldSrc_VibeSignatures gamedata (interface 5:17)
+    meta_gamesymbol_status_t (*pfnResolveGameSymbol)(void* ModuleBase, const char* szSymbolName, meta_gamesymbol_kind_t ExpectedKind, void** pOutAddress);
+    const char* (*pfnGetGameSymbolStatusString)(meta_gamesymbol_status_t Status);
 } mutil_funcs_t;
 extern mutil_funcs_t MetaUtilFunctions DLLHIDDEN;
 

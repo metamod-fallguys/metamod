@@ -22,8 +22,12 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
       - if: runner.os == 'Windows'
-        run: cmake -S . -B build/x86/${{ matrix.config }} -A Win32
+        run: cmake -S . -B build/x86/${{ matrix.config }} -A Win32 -DMMFG_METAMOD_BUILD_TESTS=ON
       - if: runner.os == 'Linux'
-        run: cmake -S . -B build/x86/${{ matrix.config }} -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+        run: cmake -S . -B build/x86/${{ matrix.config }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DMMFG_METAMOD_BUILD_TESTS=ON
       - run: cmake --build build/x86/${{ matrix.config }} --config ${{ matrix.config }} --parallel 4
+      - name: Test native components
+        run: ctest --test-dir build/x86/${{ matrix.config }} -C ${{ matrix.config }} --output-on-failure
+      - name: Test gamedata synchronizer
+        run: python -B -m unittest discover -s scripts/tests -v
       - run: cmake --install build/x86/${{ matrix.config }} --config ${{ matrix.config }}

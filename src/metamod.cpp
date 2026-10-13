@@ -56,6 +56,7 @@
 #include "info_name.h"       // VNAME, etc
 #include "vdate.h"           // COMPILE_TIME, etc
 #include "linkent.h"
+#include "gamedata.h" // GameData::Initialize, etc
 
 cvar_t meta_version = {"metamod_version", VVERSION, FCVAR_SERVER, 0, NULL};
 
@@ -325,6 +326,10 @@ int DLLINTERNAL metamod_startup(void)
         return (0);
     }
 
+    // Plugins resolve private game symbols from the gamedata catalog during
+    // Meta_Attach, so it must be ready before they are loaded.
+    meta_init_gamedata();
+
     if (!Plugins->load())
     {
         META_WARNING("Failure to load plugins...");
@@ -361,6 +366,32 @@ int DLLINTERNAL metamod_startup(void)
     }
 
     return (1);
+}
+
+// Load the gamedata catalog from <gamedir>/addons/metamod/gamedata. A missing
+// or broken catalog is not fatal for metamod itself; plugins that need a
+// game symbol fail to attach with a status explaining why.
+void DLLINTERNAL meta_init_gamedata(void)
+{
+    char root[PATH_MAX];
+    safevoid_snprintf(root, sizeof(root), "%s/%s", GameDLL.gamedir, GAMEDATA_DIR);
+
+    std::vector<std::string> indexDirs = GameData::CollectIndexDirs(root);
+    if (GameData::Initialize(indexDirs))
+        META_LOG("Loaded gamedata catalog from %s (%d index file(s))", root, (int)indexDirs.size());
+    else
+        META_WARNING("Gamedata catalog is unavailable: %s", root);
+
+    std::string diagnostics = GameData::GetDiagnostics();
+    size_t      begin       = 0;
+    while (begin < diagnostics.size())
+    {
+        size_t end = diagnostics.find('\n', begin);
+        if (end == std::string::npos)
+            end = diagnostics.size();
+        META_WARNING("Gamedata: %s", diagnostics.substr(begin, end - begin).c_str());
+        begin = end + 1;
+    }
 }
 
 // Set initial GameDLL fields (name, gamedir).

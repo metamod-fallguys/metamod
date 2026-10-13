@@ -51,6 +51,7 @@
 #include "types_meta.h" // mBOOL
 #include "osdep.h"      // win32 vsnprintf, etc
 #include "sdk_util.h"   // ALERT, etc
+#include "gamedata.h"   // GameData::Resolve, etc
 
 //2022-07 Added by hzqst
 #include "detours.h" // ALERT, etc
@@ -1461,6 +1462,16 @@ static const char* mutil_GetEngineType()
     return Engine.info.type();
 }
 
+static meta_gamesymbol_status_t mutil_ResolveGameSymbol(void* ModuleBase, const char* szSymbolName, meta_gamesymbol_kind_t ExpectedKind, void** pOutAddress)
+{
+    return GameData::Resolve(ModuleBase, szSymbolName, ExpectedKind, pOutAddress);
+}
+
+static const char* mutil_GetGameSymbolStatusString(meta_gamesymbol_status_t Status)
+{
+    return GameData::GetStatusString(Status);
+}
+
 // Meta Utility Function table.
 mutil_funcs_t MetaUtilFunctions = {
     mutil_LogConsole,               // pfnLogConsole
@@ -1520,4 +1531,7 @@ mutil_funcs_t MetaUtilFunctions = {
     //2026-01-03 added by hzqst
     mutil_GetCodeBase,
     mutil_GetCodeSize,
+    //2026-10 added by hzqst
+    mutil_ResolveGameSymbol,
+    mutil_GetGameSymbolStatusString,
 };

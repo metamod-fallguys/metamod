@@ -52,6 +52,9 @@
 #define PLUGINS_INI     "addons/metamod/plugins.ini"
 #define OLD_PLUGINS_INI "metamod.ini"
 
+// directory holding the GoldSrc_VibeSignatures gamedata catalog
+#define GAMEDATA_DIR "addons/metamod/gamedata"
+
 // file that contains commands to metamod plugins at startup
 #define EXEC_CFG     "addons/metamod/exec.cfg"
 #define OLD_EXEC_CFG "metaexec.cfg"
@@ -127,6 +130,7 @@ int DLLINTERNAL metamod_startup(void);
 
 mBOOL DLLINTERNAL meta_init_gamedll(void);
 mBOOL DLLINTERNAL meta_load_gamedll(void);
+void DLLINTERNAL  meta_init_gamedata(void);
 
 // ===== lotsa macros... ======================================================
 
