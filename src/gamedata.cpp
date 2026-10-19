@@ -4,7 +4,7 @@
 //  - records of the current platform are loaded ("windows" or "linux");
 //  - only function and global records are typed, other kinds are kept as
 //    unsupported so a query reports UNSUPPORTED_KIND instead of NOT_FOUND;
-//  - modules are always normally loaded (no blob, mirror or client alias);
+//  - BLOB engines register their original file and mapped ranges internally;
 //  - every index.json under the gamedata root is optional and merged.
 
 // Include Chocobo1Hash before <windows.h>: the Windows min/max macros would
@@ -85,6 +85,13 @@ GameDataCatalog g_catalog;
 
 std::mutex                          g_moduleCrcMutex;
 std::unordered_map<void*, uint64_t> g_moduleCrc;
+struct ModuleFileSource
+{
+    std::string                       path;
+    uint32_t                          imageSize;
+    std::vector<GameData::ImageRange> ranges;
+};
+std::unordered_map<void*, ModuleFileSource> g_moduleSources;
 
 void AddDiagnostic(const char* fmt, ...)
 {
@@ -502,6 +509,12 @@ bool LoadIndexDir(const std::string& indexDir)
 
 bool GetModulePath(void* moduleBase, std::string& outPath)
 {
+    auto source = g_moduleSources.find(moduleBase);
+    if (source != g_moduleSources.end())
+    {
+        outPath = source->second.path;
+        return true;
+    }
 #ifdef _WIN32
     char  path[MAX_PATH];
     DWORD len = GetModuleFileNameA((HMODULE)moduleBase, path, sizeof(path));
@@ -523,6 +536,9 @@ bool GetModulePath(void* moduleBase, std::string& outPath)
 // reliable SizeOfImage; ELF images are not bounds-checked.
 uint32_t GetModuleImageSize(void* moduleBase)
 {
+    auto source = g_moduleSources.find(moduleBase);
+    if (source != g_moduleSources.end())
+        return source->second.imageSize;
 #ifdef _WIN32
     auto dos = (const IMAGE_DOS_HEADER*)moduleBase;
     if (dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -582,6 +598,33 @@ void CollectIndexDirsRecursive(const std::filesystem::path& dir, std::vector<std
 
 namespace GameData
 {
+bool RegisterModuleFileSource(void* moduleBase, const std::string& path, uint32_t imageSize, const std::vector<ImageRange>& ranges)
+{
+    if (!moduleBase || path.empty() || !imageSize || ranges.empty() || uintptr_t(moduleBase) > UINTPTR_MAX - imageSize)
+        return false;
+    for (const auto& range : ranges)
+        if (!range.size || range.rva >= imageSize || range.size > imageSize - range.rva)
+            return false;
+    std::lock_guard<std::mutex> lock(g_moduleCrcMutex);
+    g_moduleCrc.erase(moduleBase);
+    g_moduleSources[moduleBase] = ModuleFileSource{path, imageSize, ranges};
+    return true;
+}
+
+void UnregisterModuleFileSource(void* moduleBase)
+{
+    std::lock_guard<std::mutex> lock(g_moduleCrcMutex);
+    g_moduleCrc.erase(moduleBase);
+    g_moduleSources.erase(moduleBase);
+}
+
+uint32_t GetRegisteredImageSize(void* moduleBase)
+{
+    std::lock_guard<std::mutex> lock(g_moduleCrcMutex);
+    auto                        source = g_moduleSources.find(moduleBase);
+    return source == g_moduleSources.end() ? 0 : source->second.imageSize;
+}
+
 std::vector<std::string> CollectIndexDirs(const std::string& root)
 {
     std::vector<std::string> dirs;
@@ -594,6 +637,10 @@ std::vector<std::string> CollectIndexDirs(const std::string& root)
 bool Initialize(const std::vector<std::string>& indexDirs)
 {
     g_catalog = GameDataCatalog{};
+    {
+        std::lock_guard<std::mutex> lock(g_moduleCrcMutex);
+        g_moduleCrc.clear();
+    }
 
     bool anyLoaded = false;
     for (const auto& dir : indexDirs)
@@ -705,9 +752,21 @@ meta_gamesymbol_status_t Resolve(void* moduleBase, const char* symbolName, meta_
     if (kind != expectedKind)
         return META_GAMESYMBOL_KIND_MISMATCH;
 
-    uint32_t imageSize = GetModuleImageSize(moduleBase);
+    std::lock_guard<std::mutex> lock(g_moduleCrcMutex);
+    uint32_t                    imageSize = GetModuleImageSize(moduleBase);
     if (imageSize != 0 && (rva >= imageSize || size > imageSize - rva))
         return META_GAMESYMBOL_RVA_OUT_OF_RANGE;
+    auto source = g_moduleSources.find(moduleBase);
+    if (source != g_moduleSources.end())
+    {
+        const uint32_t width     = size ? size : (kind == META_GAMESYMBOL_KIND_GLOBAL ? sizeof(uint32_t) : 1);
+        bool           contained = false;
+        for (const auto& range : source->second.ranges)
+            if (rva >= range.rva && rva - range.rva < range.size && width <= range.size - (rva - range.rva))
+                contained = true;
+        if (!contained)
+            return META_GAMESYMBOL_RVA_OUT_OF_RANGE;
+    }
 
     *outAddress = (char*)moduleBase + rva;
     return META_GAMESYMBOL_OK;

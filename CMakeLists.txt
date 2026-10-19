@@ -17,6 +17,7 @@ mmfg_configure_install_layout()
 add_library(metamod SHARED
     src/api_hook.cpp
     src/api_info.cpp
+    src/blob.cpp
     src/CDetour/asm/asm.cpp
     src/CDetour/detours.cpp
     src/commands_meta.cpp
