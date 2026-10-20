@@ -86,7 +86,7 @@ function(mmfg_angelscript_headers)
         return()
     endif()
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Revisions.cmake")
-    mmfg_source(angelscript ANGELSCRIPT_SOURCE_PATH https://github.com/metamod-fallguys/angelscript-sdk.git
+    mmfg_source(angelscript ANGELSCRIPT_SOURCE_PATH https://github.com/metamod-svencoop/angelscript-sdk.git
         "${MMFG_ANGELSCRIPT_REVISION}" "angelscript/include/angelscript.h" source)
     add_library(mmfg_angelscript_headers INTERFACE)
     add_library(AngelScript::Headers ALIAS mmfg_angelscript_headers)

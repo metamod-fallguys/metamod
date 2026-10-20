@@ -1,6 +1,6 @@
 # Component development
 
-This repository builds independently and as a subproject of metamod-fallguys.
+This repository builds independently and as a subproject of metamod-svencoop.
 Public interface headers belong in include/, implementation and private headers in src/.
 Native builds use build/x86/<Config> and install/x86/<Config>; configure separate
 Debug/Release trees. Explicit install prefixes win; SDK imports do not set them.
