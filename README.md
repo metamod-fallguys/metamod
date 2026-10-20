@@ -28,6 +28,14 @@ catalog through `pfnResolveGameSymbol` (interface 5:17). Symbols are looked up b
 of the loaded module file and their `symbolName`. `scripts/sync-gamedata.py` is the shared
 build-time synchronizer used by plugins through `mmfg_add_gamedata()`.
 
+Windows Half-Life 3248/3266/3329/3647 BLOB engines are also supported by the
+resolver. Metamod decodes the original engine file's description and matches its
+mapped sections and public engine function bytes to the running image. Its raw
+file CRC identifies gamedata; the verified mapped base is used for RVAs. Missing,
+ambiguous or mismatched files are rejected. No approximate base, decrypted-file
+identity, fake module handle or additional engine loader is used. This support
+keeps the public 5:17 interface unchanged.
+
 Dependency CMake variables override environment defaults. An empty path fetches a fixed
 commit; invalid explicit paths fail. External source trees are read-only inputs.
 Plugins use `METAMOD_SOURCE_PATH` and `ASEXT_SOURCE_PATH` for local clones; SDK imports

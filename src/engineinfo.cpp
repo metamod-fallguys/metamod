@@ -26,18 +26,16 @@
 
 #include <string.h> // strlen(), strrchr(), strcmp()
 #include <stdio.h>  // printf()
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+
+#include "blob.h"
+#include "gamedata.h"
 
 #include "engineinfo.h" // me
 #include "log_meta.h"   // META_DEV()
 
-
-// Current mask for checking engine function addresses
-// in VAC protected engine dlls on Win32. This is gonna fail
-// on Win64.
-const unsigned long c_VacDllEngineFuncsRangeMask  = 0xFFF00000;
-const unsigned long c_VacDllEngineFuncsRangeMark  = 0x01D00000;
-void* const         c_VacDllEngineFuncsRangeStart = (void*)0x01D00000;
-void* const         c_VacDllEngineFuncsRangeEnd   = (void*)0x01E00000;
 
 void*    mutil_GetModuleBaseByHandle(DLHANDLE hModule);
 size_t   mutil_GetImageSize(void* ImageBase);
@@ -192,52 +190,82 @@ int DLLINTERNAL EngineInfo::nthdr_module_name(void)
 
 int DLLINTERNAL EngineInfo::vac_pe_approx(enginefuncs_t* _pFuncs)
 {
-    if (NULL == _pFuncs) return INVALID_ARG;
-
-    // There is really no good and easy way to do this. Right now what
-    // we do is assume that Steam listenservers will normally be
-    // up-to-date and hence have all function pointers set correctly.
-    // So we just check for some anomality and then set some approximated
-    // values.
-
-    // The known addresses at the time of writing all start with 0x01D and
-    // this lie in the range between 0x01D00000 and 0x01E00000. What we do
-    // is check all functions pointers that are known to be good to start
-    // with 0x01D. If that is the case then we know that the loading address
-    // of the engine functions hasn't changed and we assume the above stated
-    // range to be the range of valid engine function addresses.
-    // If we find functions outside this range we can't determine a valid
-    // range and have to just give up.
-
-    unsigned long* pengfuncs = (unsigned long*)_pFuncs;
-    unsigned int   i, invals = 0;
-    for (i = 0, pengfuncs += i; i < 140; i++, pengfuncs++)
+    if (!_pFuncs) return INVALID_ARG;
+    char  executable[MAX_PATH];
+    DWORD length = GetModuleFileNameA(NULL, executable, sizeof(executable));
+    if (!length || length >= sizeof(executable)) return NOTFOUND;
+    const auto       directory = std::filesystem::path(executable).parent_path();
+    Blob::Image      selected;
+    std::string      source;
+    constexpr size_t kMaxBlobFileSize   = 64 * 1024 * 1024;
+    constexpr size_t kIdentityProbeSize = 32;
+    const void*      probes[]           = {(void*)_pFuncs->pfnModelIndex, (void*)_pFuncs->pfnModelFrames,
+                                           (void*)_pFuncs->pfnCVarGetFloat, (void*)_pFuncs->pfnCmd_Argv};
+    for (const char* name : {"hw.dll", "sw.dll", "swds.dll"})
     {
-        if (((*pengfuncs) & c_VacDllEngineFuncsRangeMask) != c_VacDllEngineFuncsRangeMark)
+        auto          path = directory / name;
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file || file.tellg() <= 0 || file.tellg() > std::streamoff(kMaxBlobFileSize)) continue;
+        file.seekg(0);
+        std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), {});
+        Blob::Image                image;
+        if (!Blob::Parse(bytes, image)) continue;
+        bool matches = true;
+        for (const auto& section : image.sections)
         {
-            invals++;
-            break;
+            uintptr_t       cursor = section.address;
+            const uintptr_t end    = cursor + section.size;
+            while (cursor < end)
+            {
+                MEMORY_BASIC_INFORMATION memory{};
+                if (!VirtualQuery((void*)cursor, &memory, sizeof(memory)) || memory.State != MEM_COMMIT ||
+                    (memory.Protect & (PAGE_NOACCESS | PAGE_GUARD)))
+                {
+                    matches = false;
+                    break;
+                }
+                cursor = uintptr_t(memory.BaseAddress) + memory.RegionSize;
+            }
+            if (!matches) break;
         }
+        for (const void* probe : probes)
+        {
+            MEMORY_BASIC_INFORMATION memory{};
+            if (!matches || !VirtualQuery(probe, &memory, sizeof(memory)) || memory.State != MEM_COMMIT ||
+                (memory.Protect & (PAGE_NOACCESS | PAGE_GUARD)) ||
+                uintptr_t(probe) + kIdentityProbeSize > uintptr_t(memory.BaseAddress) + memory.RegionSize ||
+                !Blob::MatchesCode(image, uintptr_t(probe), probe, kIdentityProbeSize))
+            {
+                matches = false;
+                break;
+            }
+        }
+        if (!matches) continue;
+        if (!source.empty())
+        {
+            META_WARNING("Ambiguous BLOB engine files; refusing module identity");
+            return NOTFOUND;
+        }
+        source   = path.string();
+        selected = std::move(image);
     }
-
-    if (invals > 0)
+    if (source.empty())
     {
-        META_DEV("Found %d engine functions out of range 0x%08lx. "
-                 "Unable to determine valid engine code address range.",
-                 invals, c_VacDllEngineFuncsRangeMark);
-
-        strncpy(m_type, "vacdll+?", c_EngineInfo__typeLen);
-        m_state = STATE_INVALID;
-        return STATE_INVALID;
+        META_WARNING("Unable to match a BLOB engine file to the loaded engine");
+        return NOTFOUND;
     }
-
-    m_codeStart = c_VacDllEngineFuncsRangeStart;
-    m_codeEnd   = c_VacDllEngineFuncsRangeEnd;
-
-    strncpy(m_type, "vacdll", c_EngineInfo__typeLen);
-
+    std::vector<GameData::ImageRange> ranges;
+    for (const auto& section : selected.sections)
+        ranges.push_back({section.address - selected.base, section.size});
+    void* base = (void*)uintptr_t(selected.base);
+    if (!GameData::RegisterModuleFileSource(base, source, selected.size, ranges)) return NOTFOUND;
+    m_imageStart = base;
+    m_imageEnd   = (char*)base + selected.size;
+    m_codeStart  = (void*)uintptr_t(selected.sections.front().address);
+    m_codeEnd    = (char*)m_codeStart + selected.sections.front().size;
+    strncpy(m_type, "blob", c_EngineInfo__typeLen);
     m_state = STATE_VALID;
-
+    META_LOG("Matched BLOB engine %s at %p (%u bytes)", source.c_str(), base, selected.size);
     return 0;
 }
 
@@ -384,6 +412,7 @@ void DLLINTERNAL EngineInfo::set_code_range(void* _pBase, ElfW(Phdr) * _pPhdr)
 
 void DLLINTERNAL EngineInfo::uninitialise()
 {
+    GameData::UnregisterModuleFileSource(m_imageStart);
     if (m_imageHandle)
     {
         mutil_CloseModuleHandle(m_imageHandle);
@@ -392,6 +421,9 @@ void DLLINTERNAL EngineInfo::uninitialise()
 
     m_imageStart = 0;
     m_imageEnd   = 0;
+    m_codeStart  = 0;
+    m_codeEnd    = 0;
+    m_state      = STATE_NULL;
 }
 
 int DLLINTERNAL EngineInfo::initialise(enginefuncs_t* _pFuncs)
@@ -407,12 +439,9 @@ int DLLINTERNAL EngineInfo::initialise(enginefuncs_t* _pFuncs)
 #ifdef _WIN32
 
     ret = nthdr_module_name();
-    if (MODULE_NAME_NOTFOUND == ret && (!_pFuncs->pfnIsDedicatedServer()))
+    if (MODULE_NAME_NOTFOUND == ret && _pFuncs)
     {
-        // We could not find the engine dll by name and we are running on
-        // a listen server. This usually means that that we are dealing with
-        // a VAC protected engine dll. No other way than approximating the
-        // range of valid engine function pointers in this case.
+        // BLOB images are not registered with the Windows module loader.
         ret = vac_pe_approx(_pFuncs);
     }
 
@@ -435,6 +464,7 @@ int DLLINTERNAL EngineInfo::initialise(enginefuncs_t* _pFuncs)
 
     if (0 != ret)
     {
+        m_state = STATE_INVALID;
         META_DEV("Unable to determine engine code address range!");
     }
     else

@@ -327,6 +327,30 @@ int main()
     }
     PASS();
 
+    TEST("gamedata - headerless source registration, holes and cache invalidation");
+    {
+        std::vector<char>                       mapped(0x2000);
+        void*                                   blob    = mapped.data();
+        void*                                   address = nullptr;
+        const std::vector<GameData::ImageRange> ranges{{0x1000, 0x20}, {0x1100, 4}};
+        ASSERT_TRUE(GameData::RegisterModuleFileSource(blob, SelfPath(), 0x2000, ranges));
+        ASSERT_INT(GameData::GetRegisteredImageSize(blob), 0x2000);
+        ASSERT_INT(GameData::Resolve(blob, "Func", META_GAMESYMBOL_KIND_FUNCTION, &address), META_GAMESYMBOL_OK);
+        ASSERT_PTR_EQ(address, mapped.data() + 0x1000);
+        ASSERT_INT(GameData::Resolve(blob, "Var", META_GAMESYMBOL_KIND_GLOBAL, &address), META_GAMESYMBOL_OK);
+        ASSERT_INT(GameData::Resolve(blob, "Dup", META_GAMESYMBOL_KIND_FUNCTION, &address), META_GAMESYMBOL_RVA_OUT_OF_RANGE);
+        ASSERT_PTR_NULL(address);
+        ASSERT_INT(GameData::Resolve(blob, "OutOfImage", META_GAMESYMBOL_KIND_FUNCTION, &address), META_GAMESYMBOL_RVA_OUT_OF_RANGE);
+        ASSERT_FALSE(GameData::RegisterModuleFileSource(blob, SelfPath(), 0x1000, ranges));
+        ASSERT_TRUE(GameData::RegisterModuleFileSource(blob, (root / "crc_check.bin").string(), 0x2000, ranges));
+        ASSERT_INT(GameData::Resolve(blob, "Func", META_GAMESYMBOL_KIND_FUNCTION, &address), META_GAMESYMBOL_MODULE_NOT_FOUND);
+        ASSERT_TRUE(GameData::RegisterModuleFileSource(blob, SelfPath(), 0x2000, {{0x1000, 0x10}}));
+        ASSERT_INT(GameData::Resolve(blob, "Func", META_GAMESYMBOL_KIND_FUNCTION, &address), META_GAMESYMBOL_RVA_OUT_OF_RANGE);
+        GameData::UnregisterModuleFileSource(blob);
+        ASSERT_INT(GameData::GetRegisteredImageSize(blob), 0);
+    }
+    PASS();
+
     TEST("gamedata - every status has a description");
     for (int status = META_GAMESYMBOL_OK; status <= META_GAMESYMBOL_CATALOG_CONFLICT; ++status)
         ASSERT_PTR_NOT_NULL(GameData::GetStatusString((meta_gamesymbol_status_t)status));

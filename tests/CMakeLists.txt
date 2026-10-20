@@ -133,6 +133,18 @@ mmetest_add(mmfg_test_gamedata
         "${MMFG_TEST_COMPONENT_ROOT}/src/gamedata.cpp")
 target_link_libraries(mmfg_test_gamedata PRIVATE mmfg_gamedata_headers)
 
+mmetest_add(mmfg_test_blob
+    SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_blob.cpp"
+        "${MMFG_TEST_COMPONENT_ROOT}/src/blob.cpp")
+if(WIN32)
+    mmetest_add(mmfg_test_blob_catalog
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_blob_catalog.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/blob.cpp"
+            "${MMFG_TEST_COMPONENT_ROOT}/src/gamedata.cpp")
+    target_link_libraries(mmfg_test_blob_catalog PRIVATE mmfg_gamedata_headers)
+    set_tests_properties(mmfg_test_blob_catalog PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
 mmetest_add(mmfg_test_mplayer_assignment
     SOURCES "${CMAKE_CURRENT_LIST_DIR}/test_mplayer_assignment.cpp"
         ${MMFG_TEST_CORE_SOURCES})

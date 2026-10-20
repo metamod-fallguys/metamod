@@ -34,6 +34,18 @@ meta_gamesymbol_status_t QueryByCRC64(uint64_t moduleCRC64, const char* symbolNa
 // CRC-64/XZ of a file on disk.
 meta_gamesymbol_status_t ComputeFileCRC64(const char* path, uint64_t* outCRC64);
 
+struct ImageRange
+{
+    uint32_t rva;
+    uint32_t size;
+};
+
+// Internal source registration for headerless BLOB images. The raw file is
+// hashed; ranges describe the already loaded image, including its holes.
+bool     RegisterModuleFileSource(void* moduleBase, const std::string& path, uint32_t imageSize, const std::vector<ImageRange>& ranges);
+void     UnregisterModuleFileSource(void* moduleBase);
+uint32_t GetRegisteredImageSize(void* moduleBase);
+
 // Resolve symbolName in the loaded module at moduleBase to moduleBase + rva.
 meta_gamesymbol_status_t Resolve(void* moduleBase, const char* symbolName, meta_gamesymbol_kind_t expectedKind, void** outAddress);
 

@@ -510,11 +510,15 @@ void* mutil_GetModuleBaseByName(const char* name)
 
 size_t mutil_GetImageSize(void* ImageBase)
 {
+    if (auto size = GameData::GetRegisteredImageSize(ImageBase))
+        return size;
     return ((IMAGE_NT_HEADERS*)((char*)ImageBase + ((IMAGE_DOS_HEADER*)ImageBase)->e_lfanew))->OptionalHeader.SizeOfImage;
 }
 
 void* mutil_GetCodeBase(void* ImageBase)
 {
+    if (ImageBase == Engine.info.m_imageStart && GameData::GetRegisteredImageSize(ImageBase))
+        return Engine.info.m_codeStart;
     auto pDosHeader     = (IMAGE_DOS_HEADER*)ImageBase;
     auto pNtHeaders     = (IMAGE_NT_HEADERS*)((char*)ImageBase + pDosHeader->e_lfanew);
     auto pSectionHeader = IMAGE_FIRST_SECTION(pNtHeaders);
@@ -534,6 +538,8 @@ void* mutil_GetCodeBase(void* ImageBase)
 
 size_t mutil_GetCodeSize(void* ImageBase)
 {
+    if (ImageBase == Engine.info.m_imageStart && GameData::GetRegisteredImageSize(ImageBase))
+        return (uintptr_t)Engine.info.m_codeEnd - (uintptr_t)Engine.info.m_codeStart;
     auto pDosHeader     = (IMAGE_DOS_HEADER*)ImageBase;
     auto pNtHeaders     = (IMAGE_NT_HEADERS*)((char*)ImageBase + pDosHeader->e_lfanew);
     auto pSectionHeader = IMAGE_FIRST_SECTION(pNtHeaders);
@@ -924,17 +930,16 @@ static qboolean mutil_UnHook(hook_t* pHook)
 
 static hook_t* mutil_InlineHook(void* pOldFuncAddr, void* pNewFuncAddr, void** pOrginalCall, bool bTranscation)
 {
+    if (!pOldFuncAddr || !pNewFuncAddr || !pOrginalCall)
+        return NULL;
+    *pOrginalCall = NULL;
+    auto d        = CDetourManager::CreateDetour(pNewFuncAddr, pOrginalCall, pOldFuncAddr);
+    if (!d)
+        return NULL;
     hook_t* h       = mutil_NewHook(MH_HOOK_INLINE);
     h->pOldFuncAddr = pOldFuncAddr;
     h->pNewFuncAddr = pNewFuncAddr;
     h->pOrginalCall = pOrginalCall;
-
-    if (!pOrginalCall)
-    {
-        return NULL;
-    }
-
-    auto d = CDetourManager::CreateDetour(pNewFuncAddr, pOrginalCall, pOldFuncAddr);
 
     h->pInfo = d;
 
